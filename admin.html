@@ -1,0 +1,1155 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Bridges admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@500&family=Roboto:wght@500&display=swap" rel="stylesheet">
+<style>
+/* Same palette and spacing as Bridges.directory (Forma 36 scale and semantic colours) */
+:root{
+  --canvas:#F4F3EF; --surface:#FFFFFF; --ink:#16150F; --ink-2:#3B3932; --muted:#6B685F;
+  --line:#E2E0D9; --line-strong:#CDCAC1; --fill:#E8E6E0; --fill-2:#DEDBD3; --btn:#16150F; --btn-h:#2E2C26; --btn-fg:#FFFFFF; --ring:rgba(22,21,15,.18);
+  --pos-bg:#EAF9E8; --pos-fg:#00550C; --warn-bg:#FFF2E4; --warn-fg:#892300; --neg-bg:#FFF2F2; --neg-fg:#BD002A;
+  --tag-bg:#E7EBEE; --tag-fg:#414D63; --tag-alum-bg:#EDE3FF; --tag-alum-fg:#5127B5; --tag-stu-bg:#E8F5FF; --tag-stu-fg:#0041AB; --tag-fac-bg:#E8E6E0; --tag-fac-fg:#16150F; --badge:#DA294A;
+  --neg-solid:#BD002A; --neg-solid-h:#990024;
+  --sans:'Geist',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif; --mono:'Geist Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  --serif:'Times New Roman',Times,'Liberation Serif',serif;
+  --sp-2xs:4px; --sp-xs:8px; --sp-s:12px; --sp-m:16px; --sp-l:24px; --sp-xl:32px; --sp-2xl:48px;
+  color-scheme:light;
+}
+:root[data-theme="dark"]{
+  --canvas:#141310; --surface:#1F1E1A; --ink:#F2F0EA; --ink-2:#D6D3CB; --muted:#A29F95;
+  --line:#2F2D27; --line-strong:#423F37; --fill:#2A2824; --fill-2:#35332D; --btn:#F2F0EA; --btn-h:#DAD7CE; --btn-fg:#141310; --ring:rgba(242,240,234,.25);
+  --pos-bg:rgba(93,176,87,.18); --pos-fg:#9ED696; --warn-bg:rgba(240,127,35,.18); --warn-fg:#FDB882; --neg-bg:rgba(255,112,125,.16); --neg-fg:#FFB1B2;
+  --tag-bg:rgba(174,193,204,.16); --tag-fg:#CFD9E0; --tag-alum-bg:rgba(174,137,255,.2); --tag-alum-fg:#D1BBFF; --tag-stu-bg:rgba(64,160,255,.18); --tag-stu-fg:#98CBFF; --tag-fac-bg:#35332D; --tag-fac-fg:#F2F0EA; --badge:#FF707D;
+  --neg-solid:#DA294A; --neg-solid-h:#BD002A; color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--canvas);color:var(--ink);font:400 .875rem/1.5 var(--sans);-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums}
+h1,h2,h3,h4,p{margin:0}
+h1,h2,h3,h4{font-weight:600;letter-spacing:-.015em;text-wrap:balance}
+a{color:inherit}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.muted{color:var(--muted)}.help{color:var(--muted);font-size:.8125rem}
+.ell{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+code,.code{font:500 .8125rem/1.2 var(--mono);letter-spacing:.02em}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:var(--sp-xs);height:40px;padding:0 var(--sp-m);border:0;border-radius:9px;font:500 .875rem/1 var(--sans);text-decoration:none;white-space:nowrap;cursor:pointer;transition:background-color .15s ease,color .15s ease}
+.btn.sm{height:32px;padding:0 var(--sp-s);font-size:.8125rem;border-radius:8px}
+.btn.primary{background:var(--btn);color:var(--btn-fg)}.btn.primary:hover{background:var(--btn-h)}
+.btn.secondary{background:var(--fill);color:var(--ink)}.btn.secondary:hover{background:var(--fill-2)}
+.btn.ghost{background:transparent;color:var(--ink-2)}.btn.ghost:hover{background:var(--fill)}
+.btn.danger{background:var(--neg-solid);color:#fff}.btn.danger:hover{background:var(--neg-solid-h)}
+.btn.neg{color:var(--neg-fg)}
+.btn:disabled,.btn[aria-disabled="true"]{opacity:.45;cursor:not-allowed}
+.ib{all:unset;box-sizing:border-box;display:grid;place-items:center;width:36px;height:36px;border-radius:9px;color:var(--ink-2);cursor:pointer}.ib:hover{background:var(--fill)}.ib:focus-visible{outline:2px solid var(--ink)}
+.lnkb{all:unset;cursor:pointer;color:var(--ink);text-decoration:underline;text-underline-offset:2px;font-weight:500}.lnkb:focus-visible{outline:2px solid var(--ink)}
+.gbtn{display:inline-flex;align-items:center;justify-content:center;gap:10px;width:100%;height:44px;padding:0 16px;border:1px solid #747775;border-radius:22px;background:#fff;color:#1F1F1F;font:500 .875rem/1 Roboto,var(--sans);cursor:pointer}
+.gbtn:hover{background:#F8F9FA;box-shadow:0 1px 2px rgba(60,64,67,.3),0 1px 3px 1px rgba(60,64,67,.15)}
+:root[data-theme="dark"] .gbtn{background:#131314;border-color:#8E918F;color:#E3E3E3}
+
+/* form controls */
+.input{width:100%;min-width:0;height:40px;padding:0 var(--sp-s);border:1px solid var(--line-strong);border-radius:8px;background:var(--surface);color:var(--ink);font:400 .875rem/1.2 var(--sans)}
+textarea.input{height:auto;padding:10px var(--sp-s);line-height:1.5;resize:vertical}
+textarea.code-ta{font:400 .8125rem/1.55 var(--mono)}
+select.input{appearance:none;padding-right:34px;background:var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236B685F' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 10px center}
+.input:hover{border-color:var(--muted)}
+.input:focus{outline:none;border-color:var(--ink);box-shadow:0 0 0 3px var(--ring)}
+.input:disabled{background:var(--fill);color:var(--muted);cursor:not-allowed}
+.input[aria-invalid="true"]{border-color:var(--neg-fg);box-shadow:0 0 0 3px var(--neg-bg)}
+.label{display:block;font-weight:500;margin-bottom:6px}
+.err{color:var(--neg-fg);font-size:.8125rem;min-height:1em}
+.fld{display:grid;gap:6px;align-content:start}.fld .label{margin:0}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--sp-m)}
+.checks{display:flex;flex-wrap:wrap;gap:var(--sp-xs)}
+.checks label{display:inline-flex;align-items:center;gap:8px;min-height:34px;padding:0 12px;border:1px solid var(--line-strong);border-radius:9px;background:var(--surface);cursor:pointer;font-size:.8125rem}
+.checks label:has(input:checked){border-color:var(--ink);background:var(--fill)}
+.checks input{accent-color:var(--btn);margin:0}
+.seg{display:inline-flex;gap:var(--sp-2xs);padding:var(--sp-2xs);background:var(--fill);border-radius:10px;max-width:100%;overflow-x:auto;scrollbar-width:none}
+.seg button{height:32px;padding:0 var(--sp-s);border:0;border-radius:8px;background:transparent;color:var(--muted);font:500 .8125rem/1 var(--sans);cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:6px}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.seg button .n{color:var(--muted);font-weight:400}
+.seg button:disabled{cursor:not-allowed;opacity:.5}
+.tgl{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--sp-m);cursor:pointer}
+.tgl b{display:block;font-weight:500}
+.tgl input{appearance:none;flex:none;position:relative;width:40px;height:24px;margin:0;border-radius:12px;background:var(--line-strong);cursor:pointer;transition:background-color .15s}
+.tgl input::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.2);transition:transform .18s cubic-bezier(.32,.72,0,1)}
+.tgl input:checked{background:var(--btn)}.tgl input:checked::after{transform:translateX(16px)}
+:root[data-theme="dark"] .tgl input:checked::after{background:#141310}
+.tgl input:disabled{opacity:.45;cursor:not-allowed}
+
+/* pills */
+.pill{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 9px;border-radius:6px;background:var(--tag-bg);color:var(--tag-fg);font-size:.75rem;font-weight:500;white-space:nowrap}
+.pill.stu{background:var(--tag-stu-bg);color:var(--tag-stu-fg)}.pill.alum{background:var(--tag-alum-bg);color:var(--tag-alum-fg)}.pill.fac{background:var(--tag-fac-bg);color:var(--tag-fac-fg)}
+.pill.pos{background:var(--pos-bg);color:var(--pos-fg)}.pill.warn{background:var(--warn-bg);color:var(--warn-fg)}.pill.neg{background:var(--neg-bg);color:var(--neg-fg)}
+.pill.dot::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor}
+
+/* app shell */
+.app{display:grid;grid-template-columns:256px minmax(0,1fr);min-height:100vh}
+.side{position:sticky;top:0;height:100vh;display:flex;flex-direction:column;gap:var(--sp-m);padding:var(--sp-m) var(--sp-s);border-right:1px solid var(--line);background:var(--surface);overflow-y:auto}
+.brand{display:flex;align-items:center;gap:8px;height:40px;padding:0 var(--sp-xs);font-weight:600;font-size:1.0625rem;letter-spacing:-.02em;text-decoration:none}
+.brand .tld{color:var(--muted);font-weight:400}.brand .pill{margin-left:auto}
+.nav{display:grid;gap:2px}
+.nav-h{padding:var(--sp-s) 10px 4px;color:var(--muted);font-size:.6875rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase}
+.nav a{display:flex;align-items:center;gap:10px;height:38px;padding:0 10px;border-radius:9px;color:var(--ink-2);text-decoration:none;font-weight:500}
+.nav a:hover{background:var(--fill)}
+.nav a[aria-current="page"]{background:var(--btn);color:var(--btn-fg)}
+.nav a svg{flex:none}
+.nb{margin-left:auto;min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:var(--badge);color:#fff;font-size:.6875rem;font-weight:600;display:inline-grid;place-items:center}
+.nav a[aria-current="page"] .nb{background:var(--btn-fg);color:var(--btn)}
+.side-f{margin-top:auto;display:grid;gap:var(--sp-s);padding:var(--sp-m) var(--sp-xs) 0;border-top:1px solid var(--line)}
+.me{display:flex;align-items:center;gap:10px;min-width:0}.me b{display:block;font-weight:500}.me small{display:block;color:var(--muted);font-size:.75rem}
+.me .ib{margin-left:auto}
+.asr{display:grid;gap:6px}.asr .label{margin:0;font-size:.75rem;color:var(--muted);font-weight:500}
+.side-l{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:.8125rem}.side-l a,.side-l button{color:var(--ink-2)}
+.proto{font-size:.75rem;color:var(--muted);background:var(--canvas);border:1px dashed var(--line-strong);border-radius:8px;padding:8px 10px}
+.main{min-width:0;display:flex;flex-direction:column}
+.top{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:var(--sp-s);min-height:64px;padding:0 var(--sp-xl);background:color-mix(in srgb,var(--canvas) 86%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+.top h1{font-size:1rem}.top .sp{flex:1}
+.qs{position:relative;width:min(320px,40vw)}.qs svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}.qs .input{padding-left:36px;height:36px;background:var(--surface)}
+.menu-b{display:none}
+.asbar{display:flex;align-items:center;gap:10px;padding:8px var(--sp-xl);background:var(--warn-bg);color:var(--warn-fg);font-size:.8125rem;font-weight:500}.asbar .lnkb{color:inherit}
+.view{padding:var(--sp-xl);display:grid;grid-template-columns:minmax(0,1fr);gap:var(--sp-l);align-content:start;width:100%;max-width:1320px}
+.view > *{min-width:0}
+.ph{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:var(--sp-m)}
+.ph h2{font:400 2.25rem/1.05 var(--serif);letter-spacing:-.02em}
+.ph p{color:var(--ink-2);margin-top:8px;max-width:660px}
+.ph .acts{display:flex;flex-wrap:wrap;gap:var(--sp-xs)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;min-width:0}
+.card-h{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--sp-s) var(--sp-m);padding:var(--sp-m) var(--sp-l);border-bottom:1px solid var(--line)}
+.card-h h3{font-size:.9375rem}
+.card-b{padding:var(--sp-l);display:grid;gap:var(--sp-m)}
+
+/* tiles */
+.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--sp-m)}
+.tile{padding:var(--sp-l);display:grid;gap:8px;text-decoration:none}
+.tile small{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:.8125rem;font-weight:500}
+.tile b{font:400 2.5rem/1 var(--serif);letter-spacing:-.02em}
+.tile .d{font-size:.8125rem;color:var(--muted)}
+a.tile:hover{border-color:var(--line-strong)}
+.tile.hot b{color:var(--neg-fg)}
+.cols{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:var(--sp-l);align-items:start}
+
+/* rows (a table that reflows on phones) */
+.tools{display:flex;flex-wrap:wrap;align-items:center;gap:var(--sp-s);padding:var(--sp-m) var(--sp-l);border-bottom:1px solid var(--line)}
+.tools .cnt{margin-left:auto;color:var(--muted);font-size:.8125rem}
+.srch{position:relative;flex:1 1 220px;max-width:340px}.srch svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}.srch .input{padding-left:36px}
+.tools select.input{width:auto}
+.tr{display:grid;grid-template-columns:var(--cols);gap:var(--sp-m);align-items:center;padding:12px var(--sp-l);border-top:1px solid var(--line);min-width:0;text-align:left}
+.tr.th{border-top:0;padding-block:10px;color:var(--muted);font-size:.75rem;font-weight:500;background:var(--canvas)}
+.tbl > .tr:nth-child(2){border-top:0}
+button.tr{all:unset;box-sizing:border-box;display:grid;grid-template-columns:var(--cols);gap:var(--sp-m);align-items:center;width:100%;padding:12px var(--sp-l);border-top:1px solid var(--line);cursor:pointer}
+button.tr:hover,summary.tr:hover{background:var(--canvas)}
+button.tr:focus-visible,summary.tr:focus-visible{outline:2px solid var(--ink);outline-offset:-2px}
+.tr .chev{color:var(--muted);justify-self:end}
+.tr > *{min-width:0}
+.mo{display:none}
+.who{display:flex;align-items:center;gap:10px;min-width:0}
+.who > span:last-child{min-width:0}
+.who b{display:block;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.who small{display:block;color:var(--muted);font-size:.8125rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ini{flex:none;display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:var(--tag-bg);color:var(--tag-fg);font-size:.75rem;font-weight:600}
+.ini.lg{width:56px;height:56px;font-size:1.125rem}
+.ini.stu{background:var(--tag-stu-bg);color:var(--tag-stu-fg)}.ini.alum{background:var(--tag-alum-bg);color:var(--tag-alum-fg)}.ini.fac{background:var(--tag-fac-bg);color:var(--tag-fac-fg)}.ini.team{background:var(--btn);color:var(--btn-fg)}
+.sub{color:var(--muted);font-size:.8125rem}
+.empty{padding:var(--sp-2xl) var(--sp-l);text-align:center;color:var(--muted);display:grid;gap:6px;justify-items:center}
+.more{display:flex;justify-content:center;padding:var(--sp-m);border-top:1px solid var(--line)}
+
+/* activity log rows */
+details.lg{border-top:1px solid var(--line)}
+details.lg > summary{list-style:none;cursor:pointer;border-top:0}
+details.lg > summary::-webkit-details-marker{display:none}
+details.lg[open] > summary{background:var(--canvas)}
+.lg-d{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--sp-s) var(--sp-l);padding:var(--sp-s) var(--sp-l) var(--sp-m);background:var(--canvas);font-size:.8125rem}
+.lg-d small{display:block;color:var(--muted);font-size:.75rem}
+.lt{display:inline-flex;align-items:center;gap:6px}.lt i{width:8px;height:8px;border-radius:50%;flex:none;background:var(--muted)}
+.lt.auth i{background:#3B82C4}.lt.signup i{background:#2E8B57}.lt.profile i{background:#8B6BD6}.lt.contact i{background:#C27C2C}.lt.verify i{background:#1F9E8F}.lt.report i{background:var(--neg-fg)}.lt.admin i{background:var(--ink)}
+.lt.warn{color:var(--warn-fg)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{all:unset;box-sizing:border-box;display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border:1px solid var(--line-strong);border-radius:15px;font-size:.8125rem;font-weight:500;color:var(--ink-2);cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--btn);border-color:var(--btn);color:var(--btn-fg)}
+.chip:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+
+/* queue and report cards */
+.qgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(340px,100%),1fr));gap:var(--sp-m)}
+.qgrid > *{min-width:0}
+.qc{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--sp-m);padding:var(--sp-l)}
+.card-b,.sec,.dw-b,.ce-f{grid-template-columns:minmax(0,1fr)}
+.qc-h{display:flex;align-items:center;gap:12px}.qc-h > div{min-width:0;flex:1}.qc-h b{display:block;font-weight:600;font-size:.9375rem}.qc-h .sub{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qc-top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.qc-by{font-size:.8125rem;color:var(--muted)}
+.qc-m{display:grid;gap:6px;font-size:.8125rem;color:var(--ink-2)}.qc-m span{display:flex;align-items:center;gap:8px}.qc-m svg{color:var(--muted);flex:none}
+.file{display:flex;align-items:center;gap:10px;padding:6px 6px 6px 12px;border:1px solid var(--line);border-radius:10px;background:var(--canvas);font-size:.8125rem}.file span{flex:1;min-width:0}.file svg{flex:none;color:var(--muted)}
+.appr{display:flex;align-items:center;gap:8px;font-size:.8125rem;color:var(--ink-2)}
+.pips{display:inline-flex;gap:3px}.pips i{width:16px;height:4px;border-radius:2px;background:var(--line-strong)}.pips i.on{background:var(--pos-fg)}
+.qc-a{display:flex;flex-wrap:wrap;gap:var(--sp-xs);padding-top:var(--sp-m);border-top:1px solid var(--line)}
+.quote{margin:0;padding:10px 14px;border-left:3px solid var(--line-strong);background:var(--canvas);border-radius:0 8px 8px 0;color:var(--ink-2)}
+.res{display:flex;gap:8px;align-items:flex-start;font-size:.8125rem;color:var(--ink-2)}.res svg{flex:none;margin-top:2px;color:var(--pos-fg)}
+
+/* links editor (same as the site): type, address, remove; the name sits under the address */
+.lk-ed{display:grid;gap:8px}
+.lk-r{display:grid;grid-template-columns:128px minmax(0,1fr) 36px;gap:8px;align-items:center;padding:8px;border:1px solid var(--line);border-radius:10px;background:var(--canvas)}
+.lk-r .lk-n{grid-column:2 / 3}
+.lk-x{all:unset;box-sizing:border-box;display:grid;place-items:center;width:36px;height:36px;border-radius:8px;color:var(--muted);cursor:pointer}.lk-x:hover{background:var(--neg-bg);color:var(--neg-fg)}.lk-x:focus-visible{outline:2px solid var(--ink)}
+.lk-x:disabled{opacity:.4;cursor:not-allowed}
+.lk-f{display:flex;align-items:center;gap:12px}
+/* drawer */
+.dw{position:fixed;inset:0;z-index:40}
+.dw-s{position:absolute;inset:0;background:rgba(10,10,8,.34);opacity:0;transition:opacity .22s ease}
+.dw.on .dw-s{opacity:1}
+.dw-p{position:absolute;top:0;right:0;bottom:0;width:min(600px,100%);background:var(--canvas);border-left:1px solid var(--line);display:flex;flex-direction:column;transform:translateX(100%);transition:transform .3s cubic-bezier(.32,.72,0,1);box-shadow:-24px 0 64px rgba(0,0,0,.12)}
+.dw.on .dw-p{transform:none}
+.dw-h{display:flex;align-items:center;gap:var(--sp-s);padding:var(--sp-m) var(--sp-l);border-bottom:1px solid var(--line);background:var(--surface)}
+.dw-h h3{font-size:1rem;flex:1;min-width:0}
+.dw-b{flex:1;overflow-y:auto;padding:var(--sp-l);display:grid;gap:var(--sp-m);align-content:start}
+.dw-f{display:flex;flex-wrap:wrap;gap:var(--sp-s);justify-content:flex-end;align-items:center;padding:var(--sp-m) var(--sp-l);border-top:1px solid var(--line);background:var(--surface)}
+.dw-f .err{margin-right:auto}
+.sec{display:grid;gap:var(--sp-m);padding:var(--sp-l);background:var(--surface);border:1px solid var(--line);border-radius:12px;min-width:0}
+.sec > h4{font-size:.875rem}
+.sec.dz{border-color:color-mix(in srgb,var(--neg-fg) 32%,var(--line))}
+.sum{display:flex;align-items:center;gap:var(--sp-m)}.sum h3{font-size:1.25rem}.sum .pills{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.kv{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--sp-s)}.kv small{display:block;color:var(--muted);font-size:.75rem}.kv b{font-weight:500;font-size:.8125rem}
+.xrow{display:grid;grid-template-columns:120px minmax(0,1fr) minmax(0,1fr) auto;gap:8px;align-items:center}
+.mini{display:grid}.mini > div{display:flex;justify-content:space-between;gap:var(--sp-m);padding:8px 0;border-top:1px solid var(--line);font-size:.8125rem}.mini > div:first-child{border-top:0}.mini span{color:var(--muted);white-space:nowrap}
+
+/* modal */
+.md{position:fixed;inset:0;z-index:60;display:grid;place-items:center;padding:var(--sp-m);background:rgba(10,10,8,.42)}
+.md-in{width:min(500px,100%);max-height:calc(100vh - 32px);overflow:auto;background:var(--surface);border-radius:16px;padding:var(--sp-l);display:grid;gap:var(--sp-m);box-shadow:0 24px 64px rgba(0,0,0,.24)}
+.md-h{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--sp-m)}.md-h h3{font-size:1.0625rem}.md-h p{margin-top:4px}
+.md-f{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:var(--sp-s);padding-top:var(--sp-xs)}
+.cred{display:grid;gap:10px;padding:var(--sp-m);border-radius:12px;background:var(--canvas);border:1px solid var(--line)}
+.cred-r{display:flex;align-items:center;justify-content:space-between;gap:12px}.cred-r small{display:block;color:var(--muted);font-size:.75rem}.cred-r code{font-size:1rem}
+.callout{display:flex;gap:10px;align-items:flex-start;padding:var(--sp-s) var(--sp-m);border-radius:10px;background:var(--fill);color:var(--ink-2);font-size:.8125rem}.callout svg{flex:none;margin-top:2px}
+.callout.warn{background:var(--warn-bg);color:var(--warn-fg)}
+.doc{display:grid;gap:10px;padding:var(--sp-l);border:1px solid var(--line);border-radius:10px;background:#FDFCF9;color:#16150F}
+.doc h4{font:400 1.25rem/1.2 var(--serif);text-align:center}
+.doc .r{display:flex;gap:8px;align-items:center;font-size:.8125rem}.doc .r b{min-width:90px;color:#6B685F;font-weight:500}
+.doc i{display:block;height:9px;border-radius:4px;background:#1A1914}
+
+/* toasts */
+#toasts{position:fixed;right:24px;bottom:24px;z-index:80;display:grid;gap:8px;width:min(380px,calc(100vw - 32px));pointer-events:none}
+.toast{pointer-events:auto;display:flex;gap:12px;align-items:flex-start;padding:14px 14px 14px 16px;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:0 14px 36px rgba(0,0,0,.14)}
+.toast .ti{flex:none;display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--pos-bg);color:var(--pos-fg)}
+.toast.info .ti{background:var(--fill);color:var(--ink-2)}.toast.warn .ti{background:var(--warn-bg);color:var(--warn-fg)}.toast.neg .ti{background:var(--neg-bg);color:var(--neg-fg)}
+.toast > div{flex:1;min-width:0}.toast b{display:block;font-weight:600}.toast p{color:var(--ink-2);font-size:.8125rem;overflow-wrap:anywhere}
+.toast .ib{width:28px;height:28px;margin:-4px -4px 0 0}
+
+/* page text editor */
+.ce{display:grid;grid-template-columns:240px minmax(0,1fr);gap:var(--sp-l);align-items:start}
+.ce-l{position:sticky;top:88px;display:grid;gap:2px}
+.ce-l .nav-h{padding-left:10px}
+.ce-l button{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:8px;height:36px;padding:0 10px;border-radius:9px;color:var(--ink-2);font-weight:500;cursor:pointer}
+.ce-l button:hover{background:var(--fill)}.ce-l button[aria-current="true"]{background:var(--surface);color:var(--ink);box-shadow:inset 0 0 0 1px var(--line)}
+.ce-l button:focus-visible{outline:2px solid var(--ink)}
+.ce-l .dot{width:7px;height:7px;border-radius:50%;background:var(--warn-fg);margin-left:auto}
+.ce-sel{display:none}
+.ce-f{display:grid;gap:var(--sp-l)}
+.fld.chg{box-shadow:inset 3px 0 0 var(--warn-fg);padding-left:var(--sp-s)}
+.fld-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.fld-h .label{margin:0}.fld-h .lnkb{margin-left:auto;font-size:.75rem;color:var(--muted)}
+.cc{font-size:.75rem;color:var(--muted);text-align:right}
+.pv{display:grid;gap:12px;padding:var(--sp-xl);background:var(--canvas);border:1px dashed var(--line-strong);border-radius:12px;min-width:0}
+.pv .eb{font-size:.6875rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:500}
+.pv h4{font:400 2rem/1.1 var(--serif);letter-spacing:-.02em;white-space:pre-line;font-weight:400}
+.pv.hero h4{font-size:2.75rem}
+.pv > p{color:var(--ink-2);white-space:pre-line;max-width:560px}
+.pv .pb{display:flex;flex-wrap:wrap;gap:8px}.pv .pb span{display:inline-flex;align-items:center;height:36px;padding:0 14px;border-radius:9px;background:var(--btn);color:var(--btn-fg);font-weight:500;font-size:.8125rem}.pv .pb span.s{background:var(--fill);color:var(--ink)}
+.pv .gbtn{max-width:340px;pointer-events:none}
+.pv .lgl{max-height:380px;overflow:auto;padding-right:8px;color:var(--ink-2)}.pv .lgl h3{font-size:.9375rem;margin:16px 0 6px;color:var(--ink)}.pv .lgl p,.pv .lgl li{margin:0 0 8px}.pv .lgl ul{padding-left:20px;margin:0 0 8px}
+.pv .mail{display:grid;gap:8px;padding:var(--sp-m);border-radius:10px;background:var(--surface);border:1px solid var(--line)}.pv .mail pre{margin:0;font:400 .8125rem/1.55 var(--sans);white-space:pre-wrap;color:var(--ink-2)}
+.pv .tst{display:flex;gap:12px;align-items:flex-start;max-width:360px;padding:14px 16px;background:var(--surface);border:1px solid var(--line);border-radius:12px}.pv .tst b{display:block}.pv .tst p{font-size:.8125rem;color:var(--ink-2)}
+.hist{display:grid}.hist > div{display:flex;gap:var(--sp-m);justify-content:space-between;padding:10px 0;border-top:1px solid var(--line);font-size:.8125rem}.hist > div:first-child{border-top:0}
+
+/* roles matrix */
+.mx{overflow-x:auto}
+.mx table{border-collapse:collapse;width:100%;min-width:620px}
+.mx th,.mx td{padding:12px var(--sp-m);border-top:1px solid var(--line);text-align:center;vertical-align:middle}
+.mx thead th{border-top:0;font-size:.8125rem;vertical-align:bottom}
+.mx thead th small{display:block;color:var(--muted);font-weight:400;font-size:.75rem;max-width:140px;margin:4px auto 0}
+.mx th:first-child,.mx td:first-child{text-align:left;padding-left:var(--sp-l)}
+.mx td:first-child{font-weight:500}
+.mx input{width:18px;height:18px;accent-color:var(--btn);cursor:pointer}.mx input:disabled{cursor:not-allowed}
+.rules{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--sp-m)}
+.rules > div{display:grid;gap:8px;align-content:start}.rules ul{margin:0;padding-left:18px;color:var(--ink-2);font-size:.8125rem;display:grid;gap:4px}
+
+/* settings */
+.set{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:var(--sp-l);padding:var(--sp-l);border-top:1px solid var(--line)}
+.set:first-child{border-top:0}
+.set > div:first-child b{display:block;font-weight:500}.set > div:first-child p{margin-top:4px}
+.set .ctl{display:grid;gap:var(--sp-s);align-content:start}.set .ctl > .seg{justify-self:start}
+.doms{display:grid;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.doms label{display:flex;align-items:center;gap:var(--sp-m);padding:10px var(--sp-m);border-top:1px solid var(--line);cursor:pointer}.doms label:first-child{border-top:0}
+.doms label span{flex:1;min-width:0}.doms code{color:var(--muted);font-size:.75rem}
+.savebar{position:sticky;bottom:0;display:flex;justify-content:flex-end;gap:var(--sp-s);align-items:center;padding:var(--sp-m) var(--sp-l);border-top:1px solid var(--line);background:color-mix(in srgb,var(--surface) 92%,transparent);backdrop-filter:blur(8px);border-radius:0 0 14px 14px}
+.savebar .help{margin-right:auto}
+
+/* sign-in gate */
+.gate{min-height:100vh;display:grid;place-items:center;padding:var(--sp-l)}
+.gate-c{width:min(420px,100%);display:grid;gap:var(--sp-l);padding:var(--sp-xl);background:var(--surface);border:1px solid var(--line);border-radius:18px}
+.gate-c h1{font:400 2.25rem/1.05 var(--serif);letter-spacing:-.02em}
+.gate-c p{color:var(--ink-2)}
+
+/* responsive */
+@media (max-width:1180px){ .tiles{grid-template-columns:repeat(2,minmax(0,1fr))} .cols{grid-template-columns:1fr} .rules{grid-template-columns:1fr} .tr,button.tr{grid-template-columns:var(--cols-t, var(--cols))} .tr .ht{display:none} }
+@media (max-width:960px){
+  .app{grid-template-columns:1fr}
+  .side{position:fixed;left:0;top:0;bottom:0;z-index:50;width:min(292px,86vw);transform:translateX(-102%);transition:transform .3s cubic-bezier(.32,.72,0,1);box-shadow:24px 0 64px rgba(0,0,0,.16)}
+  body.nav-open .side{transform:none}
+  .scrim{position:fixed;inset:0;z-index:45;background:rgba(10,10,8,.34)}
+  .menu-b{display:grid}
+  .top{padding:0 var(--sp-m)}.asbar{padding:8px var(--sp-m)}
+  .view{padding:var(--sp-l) var(--sp-m)}
+  .ce{grid-template-columns:1fr}.ce-l{display:none}.ce-sel{display:block}
+  .set{grid-template-columns:1fr;gap:var(--sp-s)}
+}
+@media (max-width:720px){
+  /* one gutter everywhere on phones: 12px */
+  .qs{display:none}
+  .top{padding:0 12px;min-height:56px}.top .btn span{display:none}.top .btn{width:36px;padding:0}
+  .asbar{padding:8px 12px}
+  .view{padding:16px 12px 24px;gap:16px}
+  .ph{gap:12px}.ph h2{font-size:1.75rem}.ph p{font-size:.8125rem;margin-top:6px}.ph .acts{width:100%}.ph .acts .btn{flex:1}
+  .tiles{gap:8px}.tile{padding:12px;gap:6px}.tile b{font-size:1.875rem}.tile small{font-size:.75rem}
+  .cols{gap:16px}
+  .card{border-radius:12px}.card-h{padding:12px}.card-b{padding:12px;gap:12px}
+  .tools{padding:12px;gap:8px}.tools .cnt{margin-left:0;width:100%}.srch{max-width:none;flex-basis:100%}.tools select.input{flex:1 1 140px}.tools .seg{flex:1 1 100%}.tools .seg button{flex:1;justify-content:center}
+  .tr,button.tr{grid-template-columns:var(--cols-m, minmax(0,1fr) auto);padding:12px;gap:10px}
+  .tr .hm{display:none}.tr.th{display:none}
+  .mo{display:block}.who small.ro{display:none}
+  .lg-d{grid-template-columns:repeat(2,minmax(0,1fr));padding:10px 12px 12px;gap:10px}
+  .grid2,.kv{grid-template-columns:1fr}
+  .qgrid{grid-template-columns:minmax(0,1fr);gap:12px}.qc{padding:12px;gap:12px}
+  .qc-a{display:grid;grid-template-columns:1fr 1fr;padding-top:12px}.qc-a .btn{width:100%}.qc-a .wide{grid-column:1 / -1}
+  .dw-b{padding:12px;gap:12px}.dw-h,.dw-f{padding:10px 12px}.sec{padding:12px;gap:12px}
+  .lk-r{grid-template-columns:minmax(0,1fr) 36px}.lk-r .lk-t{grid-column:1;grid-row:1}.lk-r .lk-x{grid-column:2;grid-row:1}.lk-r .lk-u,.lk-r .lk-n{grid-column:1 / -1}
+  .md{align-items:end;padding:0}.md-in{border-radius:16px 16px 0 0;max-height:92vh;padding:16px 12px calc(16px + env(safe-area-inset-bottom))}
+  #toasts{left:12px;right:12px;bottom:12px;width:auto}
+  .pv{padding:16px 12px}.pv.hero h4{font-size:2rem}.pv h4{font-size:1.625rem}
+  .set{padding:12px;gap:10px}.savebar{padding:10px 12px}
+  .mx th:first-child,.mx td:first-child{padding-left:12px}.mx th,.mx td{padding:10px 8px}
+  .side{padding:12px}
+  .gate{padding:12px}.gate-c{padding:20px 16px}
+}
+@media (prefers-reduced-motion: reduce){ *{transition:none!important;animation:none!important} }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<div id="toasts" role="status" aria-live="polite"></div>
+<script>
+(() => {
+'use strict';
+const SEED = {"GROUPS": [{"k": "nift", "label": "NIFTs"}, {"k": "nid", "label": "NIDs"}, {"k": "iit", "label": "IITs"}], "INST": [{"id": "nift", "s": "NIFT", "n": "National Institute of Fashion Technology", "g": "nift", "d": "nift.ac.in", "logo": 1, "cp": ["Bengaluru", "Bhopal", "Bhubaneswar", "Chennai", "Daman", "Delhi", "Gandhinagar", "Hyderabad", "Jodhpur", "Kangra", "Kannur", "Kolkata", "Mumbai", "Panchkula", "Patna", "Raebareli", "Shillong", "Srinagar", "Varanasi"], "br": ["Fashion Design", "Fashion Communication", "Textile Design", "Knitwear Design", "Leather Design", "Accessory Design", "Apparel Production", "Fashion Management"]}, {"id": "nid", "s": "NID", "n": "National Institute of Design", "g": "nid", "d": "nid.edu", "logo": 1, "cp": ["Ahmedabad", "Gandhinagar", "Bengaluru"], "br": ["Graphic Design", "Animation Film Design", "Film & Video Communication", "Product Design", "Textile & Apparel Design", "Interaction Design", "Ceramic & Glass Design", "Furniture & Interior Design", "Exhibition Design", "Photography Design", "Toy & Game Design", "Transportation & Automobile Design", "Strategic Design Management", "Universal Design"]}, {"id": "nidap", "s": "NID Andhra Pradesh", "n": "National Institute of Design, Andhra Pradesh", "g": "nid", "d": "nidap.ac.in", "logo": 1, "br": ["Communication Design", "Industrial Design", "Textile & Apparel Design"]}, {"id": "nida", "s": "NID Assam", "n": "National Institute of Design, Assam", "g": "nid", "d": "nidj.ac.in", "br": ["Communication Design", "Industrial Design", "Textile & Apparel Design"]}, {"id": "nidh", "s": "NID Haryana", "n": "National Institute of Design, Haryana", "g": "nid", "d": "nidh.ac.in", "br": ["Communication Design", "Industrial Design", "Textile & Apparel Design"]}, {"id": "nidmp", "s": "NID Madhya Pradesh", "n": "National Institute of Design, Madhya Pradesh", "g": "nid", "d": "nidmp.ac.in", "br": ["Communication Design", "Industrial Design", "Textile & Apparel Design"]}, {"id": "iitb", "s": "IIT Bombay", "n": "IDC School of Design, IIT Bombay", "g": "iit", "d": "iitb.ac.in", "logo": 1, "br": ["B.Des", "M.Des, Industrial Design", "M.Des, Interaction Design", "M.Des, Communication Design", "M.Des, Animation", "M.Des, Mobility & Vehicle Design"]}, {"id": "iitd", "s": "IIT Delhi", "n": "Department of Design, IIT Delhi", "g": "iit", "d": "iitd.ac.in", "logo": 1, "br": ["B.Des", "M.Des"]}, {"id": "iitg", "s": "IIT Guwahati", "n": "Department of Design, IIT Guwahati", "g": "iit", "d": "iitg.ac.in", "logo": 1, "br": ["B.Des", "M.Des"]}, {"id": "iith", "s": "IIT Hyderabad", "n": "Department of Design, IIT Hyderabad", "g": "iit", "d": "iith.ac.in", "logo": 1, "br": ["B.Des", "M.Des"]}, {"id": "iiti", "s": "IIT Indore", "n": "IIT Indore", "g": "iit", "d": "iiti.ac.in", "br": ["B.Des"]}, {"id": "iitj", "s": "IIT Jodhpur", "n": "School of Design, IIT Jodhpur", "g": "iit", "d": "iitj.ac.in", "br": ["M.Des, XR Design"]}, {"id": "iitk", "s": "IIT Kanpur", "n": "Department of Design, IIT Kanpur", "g": "iit", "d": "iitk.ac.in", "logo": 1, "br": ["B.Des", "M.Des"]}, {"id": "iitr", "s": "IIT Roorkee", "n": "Department of Design, IIT Roorkee", "g": "iit", "d": "iitr.ac.in", "logo": 1, "br": ["B.Des", "M.Des"]}], "OPEN": ["Portfolio review", "Mentorship call", "Internship leads", "Referrals", "Entrance prep", "Campus life", "Something else"], "OPEN_FOR": {"alum": [0, 1, 2, 3, 6], "student": [0, 4, 5, 1, 6]}, "people": [{"id": "p1", "kind": "alum", "name": "Ishita Banerjee", "inst": "nift", "campus": "Kolkata", "branch": "Fashion Communication", "year": 2020, "v": "referral", "email": "ishita.b@example.com", "email2": "", "site": "ishitab.example/work", "open": [1, 2], "vol": false, "volPhone": "", "exp": [{"t": "job", "role": "Visual Merchandiser", "org": "Loom & Line", "from": 2021, "to": 0}]}, {"id": "p2", "kind": "alum", "name": "Mehul Shah", "inst": "nift", "campus": "Mumbai", "branch": "Fashion Communication", "year": 2020, "v": "email", "email": "mehul.s@example.com", "email2": "", "site": "mehuls.example/work", "open": [0, 2], "vol": false, "volPhone": "", "exp": [{"t": "job", "role": "Creative Producer", "org": "Studio Ek", "from": 2021, "to": 0}]}, {"id": "p3", "kind": "alum", "name": "Sana Qureshi", "inst": "nift", "campus": "Delhi", "branch": "Textile Design", "year": 2016, "v": "documents", "email": "sana.q@example.com", "email2": "", "site": "sanaq.example/work", "open": [0, 1, 3], "vol": false, "volPhone": "", "exp": [{"t": "job", "role": "Textile Designer", "org": "Sutra Mills", "from": 2017, "to": 0}]}, {"id": "p4", "kind": "alum", "name": "Lakshmi Narayan", "inst": "nift", "campus": "Chennai", "branch": "Knitwear Design", "year": 2013, "v": "documents", "email": "lakshmi.n@example.com", "email2": "", "site": "lakshmin.example/work", "open": [1, 3], "vol": false, "volPhone": "", "exp": [{"t": "job", "role": "Design Head", "org": "Mothership Type", "from": 2014, "to": 0}]}, {"id": "p5", "kind": "alum", "name": "Zoya Khan", "inst": "nift", "campus": "Delhi", "branch": "Accessory Design", "year": 2022, "v": "email", "email": "zoya.k@example.com", "email2": "", "site": "zoyak.example/work", "open": [0, 2], "vol": false, "volPhone": "", "exp": [{"t": "job", "role": "Accessory Designer", "org": "Kora", "from": 2023, "to": 0}]}, {"id": "p6", "kind": "alum", "name": "Prerna Anand", "inst": "nift", "campus": "Bengaluru", "branch": "Fashion Design", "year": 2019, "v": "referral", "email": "prerna.a@example.com", "email2": "", "site": "prernaa.example/work", "open": [0, 1], "vol": false, "volPhone": "", "exp": [{"t": "free", "role": "Womenswear Designer", "org": "", "from": 2020, "to": 0}]}, {"id": "p7", "kind": "alum", "name": "Arnav Gupta", "inst": "nift", "campus": "Delhi", "branch": "Fashion Communication", "year": 2020, "v": "referral", "email": "arnav.g@example.com", "email2": "", "site": "arnavg.example/work", "open": [0, 1], "vol": false, "volPhone": "", "exp": [{"t": "job", "role": "Brand Designer", "org": "Okra & Co", "from": 2021, "to": 0}]}, {"id": "p8", "kind": "alum", "name": "Tara Menon", "inst": "nift", "campus": "Bengaluru", "branch": "Fashion Design", "year": 2019, "v": "documents", "email": "tara.m@example.com", "email2": "", "site": "taram.example/work", "open": [1, 2], "vol": false, "volPhone": "", "exp": [{"t": "job", "role": "Design Manager", "org": "Kora", "from": 2020, "to": 0}, {"t": "venture", "role": "Founder", "org": "Studio Tana", "from": 2023, "to": 0}]}, {"id": "p9", "kind": "alum", "name": "Gaurav Tomar", "inst": "nift", "campus": "Raebareli", "branch": "Leather Design", "year": 2018, "v": "documents", "email": "gaurav.t@example.com", "email2": "", "site": "gauravt.example/work", "open": [0, 3], "vol": false, "volPhone": "", "exp": [{"t": "job", "role": "Footwear Designer", "org": "Stride Labs", "from": 2019, "to": 0}]}, {"id": "p10", "kind": "alum", "name": "Meera Kulkarni", "inst": "nid", "campus": "Gandhinagar", "branch": "Interaction Design", "year": 2018, "v": "referral", "email": "meera.k@example.com", "email2": "", "site": "meerak.example/work", "open": [0, 1], "vol": false, "volPhone": "", "exp": [{"t": "job", "role": "Senior Product Designer", "org": "Kiln Studio", "from": 2019, "to": 0}, {"t": "venture", "role": "Co-founder", "org": "Paper Kite Studio", "from": 2023, "to": 0}]}, {"id": "p11", "kind": "alum", "name": "Dev Malhotra", "inst": "nid", "campus": "Bengaluru", "branch": "Interaction Design", "year": 2018, "v": "referral", "email": "dev.m@example.com", "email2": "", "site": "devm.example/work", "open": [1, 3], "vol": false, "volPhone": "", "exp": [{"t": "job", "role": "Design Researcher", "org": "Tessera", "from": 2019, "to": 0}]}, {"id": "p12", "kind": "alum", "name": "Aarav Nair", "inst": "nid", "campus": "Ahmedabad", "branch": "Graphic Design", "year": 2015, "v": "documents", "email": "aarav.nair@example.com", "email2": "", "site": "aaravnair.example/work", "open": [0, 3], "vol": false, "volPhone": "", "exp": [{"t": "job", "role": "Art Director", "org": "Halftone Collective", "from": 2016, "to": 0}, {"t": "free", "role": "Type designer", "org": "", "from": 2019, "to": 0}, {"t": "job", "role": "Designer", "org": "Inkwell Agency", "from": 2015, "to": 2018}]}, {"id": "p13", "kind": "alum", "name": "Neha Pillai", "inst": "nid", "campus": "Ahmedabad", "branch": "Graphic Design", "year": 2019, "v": "referral", "email": "neha.p@example.com", "email2": "", "site": "nehap.example/work", "open": [0, 2], "vol": false, "volPhone": "", "exp": [{"t": "job", "role": "Brand Designer", "org": "Okra & Co", "from": 2020, "to": 0}, {"t": "venture", "role": "Partner", "org": "Two Dots Agency", "from": 2024, "to": 0}]}, {"id": "p14", "kind": "alum", "name": "Ananya Rao", "inst": "nid", "campus": "Ahmedabad", "branch": "Animation Film Design", "year": 2021, "v": "referral", "email": "ananya.rao@example.com", "email2": "", "site": "ananyarao.example/work", "open": [0, 1], "vol": false, "volPhone": "", "exp": [{"t": "free", "role": "Motion Designer", "org": "", "from": 2022, "to": 0}]}, {"id": "p15", "kind": "alum", "name": "Siddharth Bose", "inst": "nid", "campus": "Ahmedabad", "branch": "Product Design", "year": 2016, "v": "documents", "email": "siddharth.b@example.com", "email2": "", "site": "siddharthb.example/work", "open": [0, 1, 3], "vol": false, "volPhone": "", "exp": [{"t": "job", "role": "Industrial Designer", "org": "Foldwork", "from": 2017, "to": 0}]}, {"id": "p16", "kind": "alum", "name": "Rukmini Das", "inst": "nid", "campus": "Bengaluru", "branch": "Strategic Design Management", "year": 2012, "v": "documents", "email": "rukmini.d@example.com", "email2": "", "site": "rukminid.example/work", "open": [1, 3], "vol": false, "volPhone": "", "exp": [{"t": "job", "role": "Design Strategist", "org": "Northlight", "from": 2013, "to": 0}]}, {"id": "p17", "kind": "alum", "name": "Lavanya Rao", "inst": "nidap", "campus": "", "branch": "Communication Design", "year": 2023, "v": "documents", "email": "lavanya.r@example.com", "email2": "", "site": "lavanyar.example/work", "open": [0, 1], "vol": false, "volPhone": "", "exp": [{"t": "job", "role": "Visual Designer", "org": "Okra & Co", "from": 2024, "to": 0}]}, {"id": "p18", "kind": "alum", "name": "Ritika Saikia", "inst": "nida", "campus": "", "branch": "Communication Design", "year": 2024, "v": "documents", "email": "ritika.s@example.com", "email2": "", "site": "ritikas.example/work", "open": [0, 1], "vol": false, "volPhone": "", "exp": [{"t": "free", "role": "Illustrator", "org": "", "from": 2025, "to": 0}]}, {"id": "p19", "kind": "alum", "name": "Nikhil Sharma", "inst": "nidmp", "campus": "", "branch": "Industrial Design", "year": 2024, "v": "email", "email": "nikhil.s@example.com", "email2": "", "site": "nikhils.example/work", "open": [0, 2], "vol": false, "volPhone": "", "exp": [{"t": "job", "role": "Industrial Designer", "org": "Studio Pehchan", "from": 2025, "to": 0}]}, {"id": "p20", "kind": "alum", "name": "Tanvi Joshi", "inst": "iitb", "campus": "", "branch": "M.Des, Interaction Design", "year": 2019, "v": "documents", "email": "tanvi.j@example.com", "email2": "", "site": "tanvij.example/work", "open": [1, 3], "vol": false, "volPhone": "", "exp": [{"t": "job", "role": "UX Researcher", "org": "Tessera", "from": 2020, "to": 0}]}, {"id": "p21", "kind": "alum", "name": "Arjun Dutta", "inst": "iitb", "campus": "", "branch": "M.Des, Industrial Design", "year": 2014, "v": "documents", "email": "arjun.d@example.com", "email2": "", "site": "arjund.example/work", "open": [1, 3], "vol": false, "volPhone": "", "exp": [{"t": "venture", "role": "Founder", "org": "Quarry", "from": 2015, "to": 0}, {"t": "job", "role": "Industrial Designer", "org": "Forge Industrial", "from": 2014, "to": 2019}]}, {"id": "p22", "kind": "alum", "name": "Kavya Hegde", "inst": "iitb", "campus": "", "branch": "M.Des, Communication Design", "year": 2021, "v": "referral", "email": "kavya.h@example.com", "email2": "", "site": "kavyah.example/work", "open": [0, 2], "vol": false, "volPhone": "", "exp": [{"t": "job", "role": "Visual Designer", "org": "Parallel Labs", "from": 2022, "to": 0}]}, {"id": "p23", "kind": "alum", "name": "Kabir Sethi", "inst": "iitd", "campus": "", "branch": "M.Des", "year": 2017, "v": "referral", "email": "kabir.s@example.com", "email2": "", "site": "kabirs.example/work", "open": [0, 3], "vol": false, "volPhone": "", "exp": [{"t": "job", "role": "Design Lead", "org": "Foldwork", "from": 2018, "to": 0}]}, {"id": "p24", "kind": "alum", "name": "Harsh Vora", "inst": "iitd", "campus": "", "branch": "B.Des", "year": 2021, "v": "email", "email": "harsh.v@example.com", "email2": "", "site": "harshv.example/work", "open": [0, 1, 2], "vol": false, "volPhone": "", "exp": [{"t": "job", "role": "Visual Designer", "org": "Bhoomi Labs", "from": 2022, "to": 0}]}, {"id": "p25", "kind": "alum", "name": "Rohan Chauhan", "inst": "iitg", "campus": "", "branch": "B.Des", "year": 2023, "v": "email", "email": "rohan.c@example.com", "email2": "", "site": "rohanc.example/work", "open": [0, 1, 2], "vol": false, "volPhone": "", "exp": [{"t": "job", "role": "Associate Designer", "org": "Parallel Labs", "from": 2024, "to": 0}]}, {"id": "p26", "kind": "alum", "name": "Aditi Verma", "inst": "iitg", "campus": "", "branch": "B.Des", "year": 2023, "v": "email", "email": "aditi.v@example.com", "email2": "", "site": "aditiv.example/work", "open": [1, 2], "vol": false, "volPhone": "", "exp": [{"t": "job", "role": "UX Designer", "org": "Fieldnote", "from": 2024, "to": 0}]}, {"id": "p27", "kind": "alum", "name": "Pooja Bhatt", "inst": "iitg", "campus": "", "branch": "B.Des", "year": 2024, "v": "email", "email": "pooja.b@example.com", "email2": "", "site": "poojab.example/work", "open": [0, 1, 2], "vol": false, "volPhone": "", "exp": [{"t": "free", "role": "Junior Designer", "org": "", "from": 2025, "to": 0}]}, {"id": "p28", "kind": "alum", "name": "Vikram Iyer", "inst": "iitg", "campus": "", "branch": "M.Des", "year": 2020, "v": "email", "email": "vikram.i@example.com", "email2": "", "site": "vikrami.example/work", "open": [1], "vol": false, "volPhone": "", "exp": [{"t": "job", "role": "Design Strategist", "org": "Northlight", "from": 2021, "to": 0}, {"t": "job", "role": "Product Designer", "org": "Ledgerline", "from": 2020, "to": 2024}]}, {"id": "p29", "kind": "alum", "name": "Devika Menon", "inst": "iith", "campus": "", "branch": "M.Des", "year": 2022, "v": "referral", "email": "devika.m@example.com", "email2": "", "site": "devikam.example/work", "open": [0, 2], "vol": false, "volPhone": "", "exp": [{"t": "job", "role": "Product Designer", "org": "Ledgerline", "from": 2023, "to": 0}]}, {"id": "p30", "kind": "alum", "name": "Varun Bishnoi", "inst": "iitj", "campus": "", "branch": "M.Des, XR Design", "year": 2025, "v": "email", "email": "varun.b@example.com", "email2": "", "site": "varunb.example/work", "open": [0, 2], "vol": false, "volPhone": "", "exp": [{"t": "job", "role": "XR Designer", "org": "Lattice", "from": 2026, "to": 0}]}, {"id": "p31", "kind": "alum", "name": "Shreya Kapoor", "inst": "iitk", "campus": "", "branch": "M.Des", "year": 2018, "v": "referral", "email": "shreya.k@example.com", "email2": "", "site": "shreyak.example/work", "open": [1, 3], "vol": false, "volPhone": "", "exp": [{"t": "job", "role": "Product Designer", "org": "Ledgerline", "from": 2019, "to": 0}]}, {"id": "p32", "kind": "alum", "name": "Imran Shaikh", "inst": "iitk", "campus": "", "branch": "B.Des", "year": 2022, "v": "referral", "email": "imran.s@example.com", "email2": "", "site": "imrans.example/work", "open": [0, 2], "vol": false, "volPhone": "", "exp": [{"t": "job", "role": "Industrial Designer", "org": "Studio Pehchan", "from": 2023, "to": 0}]}, {"id": "p33", "kind": "alum", "name": "Sahil Arora", "inst": "iitr", "campus": "", "branch": "M.Des", "year": 2021, "v": "documents", "email": "sahil.a@example.com", "email2": "", "site": "sahila.example/work", "open": [0, 1], "vol": false, "volPhone": "", "exp": [{"t": "job", "role": "Industrial Designer", "org": "Quarry", "from": 2022, "to": 0}]}, {"id": "p34", "kind": "student", "name": "Bhavna Rawat", "inst": "nift", "campus": "Delhi", "branch": "Fashion Communication", "year": 2027, "v": "email", "email": "bhavna.r@nift.ac.in", "email2": "bhavna.r@example.com", "site": "", "open": [4, 5], "vol": false, "volPhone": "", "exp": []}, {"id": "p35", "kind": "student", "name": "Tenzin Dorje", "inst": "nift", "campus": "Shillong", "branch": "Textile Design", "year": 2028, "v": "documents", "email": "tenzin.d@nift.ac.in", "email2": "tenzin.d@example.com", "site": "", "open": [5, 4], "vol": false, "volPhone": "", "exp": []}, {"id": "p36", "kind": "student", "name": "Aisha Farooqui", "inst": "nid", "campus": "Ahmedabad", "branch": "Graphic Design", "year": 2027, "v": "documents", "email": "aisha.f@nid.edu", "email2": "aisha.f@example.com", "site": "", "open": [4, 5, 0], "vol": true, "volPhone": "9876543805", "exp": []}, {"id": "p37", "kind": "student", "name": "Om Prakash", "inst": "nid", "campus": "Ahmedabad", "branch": "Product Design", "year": 2028, "v": "documents", "email": "om.p@nid.edu", "email2": "om.p@example.com", "site": "", "open": [4, 5], "vol": false, "volPhone": "", "exp": []}, {"id": "p38", "kind": "student", "name": "Manav Patel", "inst": "nidap", "campus": "", "branch": "Industrial Design", "year": 2027, "v": "documents", "email": "manav.p@nidap.ac.in", "email2": "manav.p@example.com", "site": "", "open": [4, 5], "vol": false, "volPhone": "", "exp": []}, {"id": "p39", "kind": "student", "name": "Harpreet Kaur", "inst": "nidh", "campus": "", "branch": "Textile & Apparel Design", "year": 2028, "v": "email", "email": "harpreet.k@nidh.ac.in", "email2": "harpreet.k@example.com", "site": "", "open": [5, 4], "vol": false, "volPhone": "", "exp": []}, {"id": "p40", "kind": "student", "name": "Riya Sen", "inst": "iitg", "campus": "", "branch": "B.Des", "year": 2028, "v": "email", "email": "riya.s@iitg.ac.in", "email2": "riya.s@example.com", "site": "", "open": [0, 4, 5], "vol": true, "volPhone": "9876543873", "exp": []}, {"id": "p41", "kind": "student", "name": "Kunal Mehta", "inst": "iitg", "campus": "", "branch": "M.Des", "year": 2027, "v": "email", "email": "kunal.m@iitg.ac.in", "email2": "kunal.m@example.com", "site": "", "open": [4, 5], "vol": true, "volPhone": "9876543890", "exp": []}, {"id": "p42", "kind": "student", "name": "Sneha Iyer", "inst": "iitb", "campus": "", "branch": "B.Des", "year": 2029, "v": "email", "email": "sneha.i@iitb.ac.in", "email2": "sneha.i@example.com", "site": "", "open": [4, 5], "vol": false, "volPhone": "", "exp": []}, {"id": "p43", "kind": "student", "name": "Yash Agarwal", "inst": "iitd", "campus": "", "branch": "B.Des", "year": 2027, "v": "email", "email": "yash.a@iitd.ac.in", "email2": "yash.a@example.com", "site": "", "open": [0, 4, 5], "vol": false, "volPhone": "", "exp": []}, {"id": "p44", "kind": "student", "name": "Fatima Sheikh", "inst": "iith", "campus": "", "branch": "B.Des", "year": 2028, "v": "documents", "email": "fatima.s@iith.ac.in", "email2": "fatima.s@example.com", "site": "", "open": [4, 5], "vol": false, "volPhone": "", "exp": []}, {"id": "p45", "kind": "student", "name": "Ankit Jain", "inst": "iiti", "campus": "", "branch": "B.Des", "year": 2029, "v": "email", "email": "ankit.j@iiti.ac.in", "email2": "ankit.j@example.com", "site": "", "open": [4, 5], "vol": false, "volPhone": "", "exp": []}, {"id": "p46", "kind": "student", "name": "Rahul Verma", "inst": "iitk", "campus": "", "branch": "B.Des", "year": 2029, "v": "email", "email": "rahul.v@iitk.ac.in", "email2": "rahul.v@example.com", "site": "", "open": [4, 5], "vol": false, "volPhone": "", "exp": []}, {"id": "p47", "kind": "student", "name": "Ira Banerjee", "inst": "iitr", "campus": "", "branch": "B.Des", "year": 2028, "v": "email", "email": "ira.b@iitr.ac.in", "email2": "ira.b@example.com", "site": "", "open": [5, 4], "vol": false, "volPhone": "", "exp": []}]};
+const DOCSRC = {"DOC_IDS": ["about", "privacy", "terms", "cookies", "guidelines"], "DOCS": {"about": {"tab": "About", "eyebrow": "About", "t": "A few steps ahead, one message away", "lede": "Bridges.directory is a free, verified directory of students and alumni from India’s design schools. It exists so that anyone preparing for an entrance, building a portfolio or choosing a specialisation can ask someone who has already done it.", "body": "\n<h3>Who’s listed</h3>\n<p>Current students and alumni of all 19 NIFT campuses, the NIDs, and the IITs that teach design. Everyone is verified before they appear, so the person you write to really did study where they say.</p>\n<h3 id=\"verify\">How verification works</h3>\n<ul>\n<li><b>Students</b> get a one-time code at their institute email. Anyone without one can upload a bonafide certificate instead.</li>\n<li><b>Alumni</b> upload a degree certificate or alumni ID, or enter a referral code from a verified alum of the same institute.</li>\n<li><b>Certificates</b> are checked by two student volunteers. They see only your name, institute, branch and year; everything else is hidden, and the file is deleted once they decide.</li>\n</ul>\n<h3>How contact works</h3>\n<p>Signed-in members can open up to five contacts a week. The count resets every Monday at midnight IST. The limit keeps inboxes manageable for the people who help, so please make each message count.</p>\n<h3>Who runs it</h3>\n<p>A small team of design students, with current students volunteering to review certificates. Running costs are about ₹10,000 a year, covered by contributions from members. There are no ads, and we never sell data.</p>\n<h3>Get in touch</h3>\n<p>Write to <a href=\"mailto:hello@bridges.directory\">hello@bridges.directory</a>. To report a listing, use <b>Report</b> on that person’s card, or write to <a href=\"mailto:safety@bridges.directory\">safety@bridges.directory</a>.</p>"}, "privacy": {"tab": "Privacy", "eyebrow": "Legal", "t": "Privacy policy", "lede": "What we collect, why, who can see it, and how to take it back.", "body": "\n<h3>1. Who we are</h3>\n<p>Bridges.directory (“we”) is run by [legal name of the team or entity, to be confirmed]. Under India’s Digital Personal Data Protection Act, 2023, we are the data fiduciary for the personal data described here.</p>\n<h3>2. What we collect</h3>\n<ul>\n<li><b>Your listing:</b> name, institute and campus, branch, batch or expected graduation year, what you’re happy to help with, your avatar, an optional portfolio link and, for alumni, your experience.</li>\n<li><b>Your Google account:</b> when you sign in with Google, we receive your name and email address, and Google’s confirmation that the address is yours. We never see your Google password.</li>\n<li><b>Contact details:</b> your institute email (students), and for alumni, a contact email if you set one.</li>\n<li><b>Verification:</b> the certificate you upload or the referral code you enter, and a record of the method and the outcome.</li>\n<li><b>Volunteers:</b> your mobile number.</li>\n<li><b>Contributions:</b> the amount, the date and the name you choose to show, or “Anonymous”. Payments are handled by our payment provider; we never see or store card or UPI details.</li>\n<li><b>Activity:</b> which contacts you have opened, to apply the weekly limit. With your consent, anonymous page counts.</li>\n</ul>\n<h3>3. Why we use it</h3>\n<p>To verify and list you, to let signed-in members contact you within the weekly limit, to run the volunteer programme, to process contributions, to keep the platform free of spam and misuse, and, only if you allow it, to understand which pages help.</p>\n<h3>4. Consent</h3>\n<p>We process your data on the basis of the consent you give when you sign up, and for uses the law permits without consent, such as responding to legal requests. You can withdraw consent at any time by deleting your account; we then stop listing you.</p>\n<h3>5. Who can see what</h3>\n<ul>\n<li>Listings are visible only to signed-in, verified members, not to search engines or visitors.</li>\n<li>Your email and portfolio link are shown only when a member chooses to open your contact, which uses one of their five contacts that week.</li>\n<li>Volunteers see only name, institute, branch and year from a certificate. Your volunteer number is shared with coordinators and the volunteer WhatsApp group.</li>\n<li>Faculty accounts, created by the Bridges team, can browse and open contacts like members, but aren’t listed themselves.</li>\n<li>Service providers that host the site, handle Google sign-in, send email and process payments handle data for us under contract. We never sell or rent data, and we don’t share it with advertisers.</li>\n</ul>\n<h3>6. How long we keep it</h3>\n<ul>\n<li>Certificates are deleted as soon as a decision is made.</li>\n<li>Your listing stays while your account is active.</li>\n<li>When you delete your account, your listing disappears at once and your data is erased within 30 days, except records the law requires us to keep, such as contribution receipts.</li>\n</ul>\n<h3>7. Your rights</h3>\n<ul>\n<li><b>Access:</b> download a copy of your data from My profile.</li>\n<li><b>Correction:</b> change your details at any time with Edit profile.</li>\n<li><b>Erasure:</b> delete your account from My profile.</li>\n<li><b>Nomination:</b> name someone to exercise these rights for you if you can’t.</li>\n<li><b>Grievances:</b> write to our grievance officer (below).</li>\n</ul>\n<h3>8. Age</h3>\n<p>You must be 18 or older to sign up, or have verifiable consent from a parent or guardian.</p>\n<h3>9. Security</h3>\n<p>Data is encrypted in transit, access is limited to the people who need it, and volunteers only ever see redacted files.</p>\n<h3>10. Grievance officer</h3>\n<p>[Name], <a href=\"mailto:grievances@bridges.directory\">grievances@bridges.directory</a>. We acknowledge complaints within 24 hours and aim to resolve them within 15 days. If you’re not satisfied, you can complain to the Data Protection Board of India.</p>\n<h3>11. Changes</h3>\n<p>We’ll post updates here, and tell you by email or on the site before any significant change takes effect.</p>"}, "terms": {"tab": "Terms", "eyebrow": "Legal", "t": "Terms of use", "lede": "The rules for using Bridges.directory. Creating an account means you agree to them and to the Privacy policy.", "body": "\n<h3>1. Who can join</h3>\n<ul>\n<li>Current students and alumni of the institutes listed on the site. Faculty accounts are created by the Bridges team on request.</li>\n<li>You must be 18 or older, or have consent from a parent or guardian.</li>\n<li>One account per person, and everything in your listing must be true.</li>\n</ul>\n<h3>2. Verification and referrals</h3>\n<p>We may refuse or remove any listing we can’t verify. Refer only people you know studied at your institute. Misusing referrals can lead to both accounts being removed.</p>\n<h3>3. Using contact details</h3>\n<p>Use them only to ask for help, advice or opportunities related to design education and careers. Don’t:</p>\n<ul>\n<li>send bulk or copy-pasted messages, or add people to mailing lists;</li>\n<li>copy, scrape, sell or publish anyone’s details;</li>\n<li>promote products, services or unrelated schemes;</li>\n<li>harass anyone, or keep writing after they’ve said no.</li>\n</ul>\n<p>The weekly contact limit is part of these terms. Don’t try to get around it.</p>\n<h3>4. Volunteers</h3>\n<p>Keep everything you see while reviewing confidential. Decide honestly, and don’t download, copy or share certificates.</p>\n<h3>5. Your listing</h3>\n<p>You’re responsible for what you add, and you allow us to show it to signed-in members. You can edit or delete it at any time.</p>\n<h3>6. Contributions</h3>\n<p>Contributions are voluntary and pay for running costs; they don’t buy anything. They’re refundable only for duplicate or mistaken payments reported within 7 days. They’re not tax-deductible unless we say so in writing.</p>\n<h3>7. Suspension</h3>\n<p>We may limit or suspend accounts that break these terms or the Community guidelines, and we’ll tell you why.</p>\n<h3>8. No guarantees</h3>\n<p>Bridges.directory connects people. We don’t guarantee that anyone will reply, and advice from members is their own. Nothing here promises admission, a job or an internship.</p>\n<h3>9. Liability</h3>\n<p>As far as the law allows, we aren’t liable for indirect losses, and our total liability to you is limited to what you contributed in the previous 12 months.</p>\n<h3>10. Law</h3>\n<p>These terms are governed by the laws of India, and the courts at [city, to be confirmed] have jurisdiction.</p>\n<h3>11. Changes and contact</h3>\n<p>We’ll post updates here and tell you about significant ones. Questions: <a href=\"mailto:hello@bridges.directory\">hello@bridges.directory</a>.</p>"}, "cookies": {"tab": "Cookies", "eyebrow": "Legal", "t": "Cookie policy", "lede": "We keep this short because we use very little. There are no advertising or social-media cookies.", "body": "\n<h3>What we store</h3>\n<p>Cookies and similar browser storage are small pieces of data kept on your device. Here’s everything Bridges.directory stores:</p>\n<div class=\"doc-tbl\" role=\"table\" aria-label=\"Cookies and storage\">\n<div role=\"row\" class=\"th\"><span role=\"columnheader\">Name</span><span role=\"columnheader\">Why</span><span role=\"columnheader\">Kept for</span></div>\n<div role=\"row\"><span role=\"cell\"><code>bridges-session</code><small>Essential</small></span><span role=\"cell\">Keeps you logged in.</span><span role=\"cell\">Until you log out</span></div>\n<div role=\"row\"><span role=\"cell\"><code>Google sign-in</code><small>Essential</small></span><span role=\"cell\">Set by Google while you sign in, so it can confirm your account. Covered by Google’s own privacy policy.</span><span role=\"cell\">Set by Google</span></div>\n<div role=\"row\"><span role=\"cell\"><code>bridges-theme</code><small>Essential</small></span><span role=\"cell\">Remembers light, dark or system appearance.</span><span role=\"cell\">Until you change it</span></div>\n<div role=\"row\"><span role=\"cell\"><code>bridges-consent</code><small>Essential</small></span><span role=\"cell\">Remembers your cookie choice, so we don’t ask again.</span><span role=\"cell\">12 months</span></div>\n<div role=\"row\"><span role=\"cell\"><code>Analytics</code><small>Optional</small></span><span role=\"cell\">Anonymous page counts. No cross-site tracking, and IP addresses aren’t stored.</span><span role=\"cell\">Only if you allow it</span></div>\n</div>\n<h3>Your choice</h3>\n<p>Essential storage is needed for the site to work, so it’s always on. Analytics stay off until you allow them. Change your mind any time with <b>Cookie settings</b> at the bottom of every page, or clear this site’s data in your browser.</p>"}, "guidelines": {"tab": "Guidelines", "eyebrow": "Community", "t": "Community guidelines", "lede": "Everyone here is giving their time for free. These guidelines keep it worth giving.", "body": "\n<h3>When you reach out</h3>\n<ul>\n<li><b>Be specific.</b> Say who you are, what you’re working on and what you need. “Can you look at my portfolio?” gets fewer replies than a clear question.</li>\n<li><b>Respect people’s time.</b> Send one message and follow up once. If someone says no or doesn’t reply, let it go.</li>\n<li><b>Keep it about design education and careers.</b> No sales, promotions or recruiting for unrelated work.</li>\n</ul>\n<h3>On your listing</h3>\n<ul>\n<li>Be honest about where you studied and what you do.</li>\n<li>Only tick what you’re actually happy to help with, and update it when that changes.</li>\n</ul>\n<h3>Always</h3>\n<ul>\n<li>Don’t share anyone’s contact details or messages outside the platform without their permission.</li>\n<li>No harassment, discrimination or hate, in any form.</li>\n</ul>\n<h3>Reporting</h3>\n<p>Use <b>Report</b> on any card, or write to <a href=\"mailto:safety@bridges.directory\">safety@bridges.directory</a>. We review every report within 3 days, and the person isn’t told who reported them.</p>\n<h3>What happens</h3>\n<p>Depending on what happened: a warning, a lower contact limit, or removal from the directory.</p>"}}};
+const SITE = 'https://claude.ai/artifact/Npy2yWbY1TUX4J2C8Kv6tM';
+const P = {
+  down:'<path d="m6 9 6 6 6-6"/>',
+  right:'<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
+  check:'<path d="M20 6 9 17l-5-5"/>',
+  search:'<path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/>',
+  menu:'<path d="M4 5h16"/><path d="M4 12h16"/><path d="M4 19h16"/>',
+  x:'<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+  upload:'<path d="M12 3v12"/><path d="m17 8-5-5-5 5"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>',
+  doc:'<path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/>',
+  eye:'<path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/>',
+  shield:'<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>',
+  key:'<path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"/><circle cx="16.5" cy="7.5" r=".5" fill="currentColor"/>',
+  home:'<path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+  grid:'<rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/>',
+  users:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><path d="M16 3.128a4 4 0 0 1 0 7.744"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><circle cx="9" cy="7" r="4"/>',
+  inbox:'<polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
+  user:'<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+  alert:'<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+  heart:'<path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"/>',
+  lock:'<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  mail:'<path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7"/><rect x="2" y="4" width="20" height="16" rx="2"/>',
+  brief:'<path d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/><rect width="20" height="14" x="2" y="6" rx="2"/>',
+  venture:'<path d="M10 12h4"/><path d="M10 8h4"/><path d="M14 21v-3a2 2 0 0 0-4 0v3"/><path d="M6 10H4a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2"/><path d="M6 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16"/>',
+  free:'<path d="m18 13-.654-4.736a4 4 0 00-2.756-3.266l-9.163-2.9a2 2 0 00-2.017.493l-.82.819a2 2 0 00-.492 2.017l2.9 9.163a4 4 0 003.266 2.756L13 18"/><path d="M18.648 12.352a1.205 1.205 0 011.704 0l1.296 1.296a1.205 1.205 0 010 1.704l-6.296 6.296a1.205 1.205 0 01-1.704 0l-1.296-1.296a1.205 1.205 0 010-1.704z"/><path d="m3 3 6.586 6.586"/><circle cx="11" cy="11" r="2"/>',
+  cap:'<path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z"/><path d="M22 10v6"/><path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"/>',
+  cal:'<path d="M8 2v3"/><path d="M16 2v3"/><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/>',
+  folder:'<path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"/>',
+  video:'<path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5"/><rect x="2" y="6" width="14" height="12" rx="2"/>',
+  target:'<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
+  hand:'<path d="m11 17 2 2a1 1 0 1 0 3-3"/><path d="m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4"/><path d="m21 3 1 11h-2"/><path d="M3 3 2 14l6.5 6.5a1 1 0 1 0 3-3"/><path d="M3 4h8"/>',
+  book:'<path d="M12 5v16"/><path d="M20.001 19A2 2 0 0022 17V5a2 2 0 00-1.999-2L16 3.002A5 5 0 0012 5a5 5 0 00-4-2H4a2 2 0 00-2 2v12a2 2 0 001.999 2H8a5 5 0 014 2 5 5 0 014-2z"/>',
+  campus:'<path d="M14 21v-3a2 2 0 0 0-4 0v3"/><path d="M18 4.933V21"/><path d="m4 6 7.106-3.79a2 2 0 0 1 1.788 0L20 6"/><path d="m6 11-3.52 2.147a1 1 0 0 0-.48.854V19a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-5a1 1 0 0 0-.48-.853L18 11"/><path d="M6 4.933V21"/><circle cx="12" cy="9" r="2"/>',
+  pin:'<path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/>',
+  send:'<path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/>',
+  copy:'<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
+  link:'<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
+  plus:'<path d="M5 12h14"/><path d="M12 5v14"/>',
+  trash:'<path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',
+  filter:'<path d="M10 5H3"/><path d="M12 19H3"/><path d="M14 3v4"/><path d="M16 17v4"/><path d="M21 12h-9"/><path d="M21 19h-5"/><path d="M21 5h-7"/><path d="M8 10v4"/><path d="M8 12H3"/>',
+  uplus:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/>',
+  clock:'<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
+  out:'<path d="m16 17 5-5-5-5"/><path d="M21 12H9"/><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>',
+  chat:'<path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"/>',
+  phone:'<path d="M13.832 16.568a1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 6.392 6.384"/>',
+  info:'<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>',
+  pencil:'<path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/>',
+  globe:'<circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/>',
+  ext:'<path d="M7 7h10v10"/><path d="M7 17 17 7"/>',
+  flag:'<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" x2="4" y1="22" y2="15"/>',
+  download:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>',
+  cookie:'<path d="M12 2a10 10 0 1 0 10 10 4 4 0 0 1-5-5 4 4 0 0 1-5-5"/><path d="M8.5 8.5v.01"/><path d="M16 15.5v.01"/><path d="M12 12v.01"/><path d="M11 17v.01"/><path d="M7 14v.01"/>',
+  shuffle:'<path d="m18 14 4 4-4 4"/><path d="m18 2 4 4-4 4"/><path d="M2 18h1.973a4 4 0 0 0 3.3-1.7l5.454-8.6a4 4 0 0 1 3.3-1.7H22"/><path d="M2 6h1.972a4 4 0 0 1 3.6 2.2"/><path d="M22 18h-6.041a4 4 0 0 1-3.3-1.8l-.359-.45"/>'
+};
+Object.assign(P, {
+  layout:'<rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>',
+  activity:'<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
+  type:'<path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/>',
+  sliders:'<path d="M21 4h-7"/><path d="M10 4H3"/><path d="M21 12h-9"/><path d="M8 12H3"/><path d="M21 20h-5"/><path d="M12 20H3"/><path d="M14 2v4"/><path d="M8 10v4"/><path d="M16 18v4"/>',
+  refresh:'<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>',
+  eyeoff:'<path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.53 13.53 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="m2 2 20 20"/>',
+  ban:'<circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/>',
+  moon:'<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>',
+  sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>',
+  undo:'<path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/>',
+  shieldok:'<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/>',
+  xcircle:'<circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/>'
+});
+const GLOGO = '<svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>';
+
+/* ---------- helpers ---------- */
+const $ = (s, r) => (r || document).querySelector(s), $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ico = (n, s) => '<svg width="'+(s||16)+'" height="'+(s||16)+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(P[n]||'')+'</svg>';
+const INST = SEED.INST, IB = {}; INST.forEach(i => IB[i.id] = i);
+const OPEN = SEED.OPEN, OPEN_FOR = SEED.OPEN_FOR;
+const GROUPS = [['nift','NIFT'],['nid','NID'],['iit','IIT']];
+const DAY = 864e5, THIS_YEAR = 2026;
+const instLabel = x => IB[x.inst] ? IB[x.inst].s + (x.campus ? ' '+x.campus : '') : 'Unknown';
+const instFull = x => IB[x.inst] ? IB[x.inst].n + (x.campus ? ', '+x.campus : '') : 'Unknown';
+const VM = {email:'Institute email code', documents:'Certificate', referral:'Referral code'};
+const EXP_T = {job:'Job', venture:'Own venture', free:'Freelance'};
+const KIND = {student:'Student', alum:'Alum', faculty:'Faculty'};
+const initials = n => String(n).split(/\s+/).filter(Boolean).map(w => w[0]).slice(0, 2).join('').toUpperCase();
+const ini = (n, cls) => '<span class="ini'+(cls ? ' '+cls : '')+'" aria-hidden="true">'+esc(initials(n))+'</span>';
+const kindPill = k => '<span class="pill '+(k === 'student' ? 'stu' : k === 'alum' ? 'alum' : 'fac')+'">'+KIND[k]+'</span>';
+const fmtD = iso => iso ? new Date(iso).toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'}) : 'Never';
+const fmtDT = iso => new Date(iso).toLocaleString('en-GB', {day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'});
+function rel(iso){
+  if(!iso) return 'Never';
+  const s = (Date.now() - new Date(iso)) / 1000;
+  if(s < 60) return 'Just now'; if(s < 3600) return Math.floor(s / 60)+' min ago'; if(s < 86400) return Math.floor(s / 3600)+' h ago';
+  const d = Math.floor(s / 86400); if(d === 1) return 'Yesterday'; if(d < 7) return d+' days ago'; return fmtD(iso);
+}
+const validEmail = e => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((e || '').trim());
+const googleOf = p => p.kind === 'student' && p.email2 ? p.email2 : p.email;
+const instEmailOf = p => p.kind === 'student' && IB[p.inst] && new RegExp('@([a-z0-9-]+\\.)*'+IB[p.inst].d.replace(/\./g, '\\.')+'$').test(p.email || '') ? p.email : '';
+const contactOf = p => p.cemail || p.email;
+const LINK_MAX = 4;
+const LINK_T = {portfolio:'Portfolio', behance:'Behance', website:'Website', other:'Other link'};
+const LINK_PH = {portfolio:'yourname.com/work', behance:'behance.net/yourname', website:'yourname.com', other:'Dribbble, LinkedIn or a PDF link'};
+const linkTypeOf = u => /behance\./i.test(u || '') ? 'behance' : 'portfolio';
+const siteLabel = v => (v || '').replace(/^https?:\/\//i, '').replace(/^www\./i, '').replace(/\/$/, '');
+function normLinks(m){ if(!Array.isArray(m.links)) m.links = m.site ? [{t:linkTypeOf(m.site), url:m.site, name:''}] : []; delete m.site; return m; }
+const LINK_DEMO = {
+  'Bhavna Rawat':[{t:'behance', url:'behance.example/bhavnarawat', name:'Textile prints'}, {t:'portfolio', url:'bhavnar.example/work', name:''}],
+  'Riya Sen':[{t:'portfolio', url:'riyasen.example', name:'UX case studies'}],
+  'Meera Kulkarni':[{t:'portfolio', url:'meerak.example/work', name:'Product design work'}, {t:'behance', url:'behance.example/meerak', name:'Illustration'}, {t:'website', url:'meerak.example', name:'Studio site'}]};
+const lkRow = (l, dis) => '<div class="lk-r"><select class="input lk-t" aria-label="Link type"'+dis+'>'+Object.keys(LINK_T).map(k => '<option value="'+k+'"'+(l.t === k ? ' selected' : '')+'>'+LINK_T[k]+'</option>').join('')+'</select>'
+  + '<input class="input lk-u" type="url" inputmode="url" aria-label="Link address" placeholder="'+esc(LINK_PH[l.t] || LINK_PH.portfolio)+'" value="'+esc(l.url)+'"'+dis+'>'
+  + '<button class="lk-x" type="button" aria-label="Remove link" title="Remove"'+dis+'>'+ico('trash', 15)+'</button>'
+  + '<input class="input lk-n" maxlength="40" aria-label="Link name (optional)" placeholder="Name (optional)" value="'+esc(l.name || '')+'"'+dis+'></div>';
+const linksEditor = (links, dis) => { const rows = (links && links.length ? links : [{t:'portfolio', url:'', name:''}]).slice(0, LINK_MAX);
+  return '<div class="lk-ed">'+rows.map(l => lkRow(l, dis)).join('')+'<div class="lk-f"><button class="btn ghost sm" type="button" data-lkadd'+(rows.length >= LINK_MAX || dis ? ' disabled' : '')+'>'+ico('plus', 14)+'Add a link</button><span class="help" data-lkn>'+rows.length+' of '+LINK_MAX+'</span></div></div>'; };
+const readLinks = root => $$('.lk-r', root).map(r => ({t:$('.lk-t', r).value, url:$('.lk-u', r).value.trim().replace(/\/+$/, ''), name:$('.lk-n', r).value.trim()})).filter(l => l.url).slice(0, LINK_MAX);
+const badLink = u => /\s/.test(u) || !/\.[a-z]{2,}$/i.test(u.replace(/^https?:\/\//i, '').split(/[/?#]/)[0]);
+const linksText = ls => ls.map(l => LINK_T[l.t]+(l.name ? ' ('+l.name+')' : '')+': '+l.url).join('; ');
+function lkCount(ed){ const n = $$('.lk-r', ed).length; $('[data-lkn]', ed).textContent = n+' of '+LINK_MAX; $('[data-lkadd]', ed).disabled = n >= LINK_MAX; }
+document.addEventListener('click', e => {
+  const add = e.target.closest('[data-lkadd]');
+  if(add){ const ed = add.closest('.lk-ed'); if($$('.lk-r', ed).length >= LINK_MAX) return; $('.lk-f', ed).insertAdjacentHTML('beforebegin', lkRow({t:'portfolio', url:'', name:''}, '')); lkCount(ed); $$('.lk-u', ed).pop().focus(); return; }
+  const x = e.target.closest('.lk-x');
+  if(x){ const ed = x.closest('.lk-ed'), r = x.closest('.lk-r');
+    if($$('.lk-r', ed).length === 1){ $$('input', r).forEach(i => i.value = ''); $('.lk-t', r).value = 'portfolio'; } else r.remove();
+    lkCount(ed); }
+});
+document.addEventListener('change', e => { if(e.target.matches('.lk-t')) $('.lk-u', e.target.closest('.lk-r')).placeholder = LINK_PH[e.target.value]; });
+document.addEventListener('focusout', e => { if(!e.target.matches('.lk-u')) return; const t = $('.lk-t', e.target.closest('.lk-r')); if(/behance\./i.test(e.target.value)) t.value = 'behance'; });
+function rng(a){ return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function instOptions(cur){
+  return GROUPS.map(([g, l]) => '<optgroup label="'+l+'s">'+INST.filter(i => i.g === g).map(i => (i.cp ? i.cp.map(c => [i.id+'|'+c, i.s+' '+c]) : [[i.id, i.s]]).map(([v, t]) => '<option value="'+esc(v)+'"'+(v === cur ? ' selected' : '')+'>'+esc(t)+'</option>').join('')).join('')+'</optgroup>').join('');
+}
+const splitInst = v => { const [inst, campus] = String(v || '').split('|'); return {inst, campus:campus || ''}; };
+
+/* ---------- roles ---------- */
+const ROLES = ['Owner','Admin','Moderator','Support'];
+const PERMS = [
+  ['logs','View the activity log'], ['edit','Edit member profiles'], ['suspend','Hide or suspend members'], ['delete','Delete profiles'],
+  ['verify','Approve or reject verification'], ['reports','Handle reports'], ['faculty','Manage faculty accounts'], ['content','Edit page text'],
+  ['export','Export data'], ['settings','Change settings'], ['team','Manage the team and roles']];
+const ROLE_DESC = {Owner:'Everything. Can\'t be changed.', Admin:'Runs the site day to day.', Moderator:'Verification, reports and hiding listings.', Support:'Helps members and faculty with accounts.'};
+function roleDefaults(){
+  const all = {}; PERMS.forEach(([k]) => all[k] = true);
+  const pick = ks => { const o = {}; PERMS.forEach(([k]) => o[k] = ks.indexOf(k) >= 0); return o; };
+  return {Owner:all, Admin:Object.assign({}, all, {team:false}), Moderator:pick(['logs','edit','suspend','verify','reports']), Support:pick(['logs','edit','faculty'])};
+}
+
+/* ---------- page text: every editable string on the site, with its default ---------- */
+const LG = DOCSRC.DOCS;
+const PAGES = [
+  {id:'home', n:'Home', grp:'Pages', path:'#home', pv:'hero', f:[['h','Headline',"Talk to someone\nwho's already there.",'m'],['lede','Intro',"Verified alumni and current students from India's design schools: all 19 NIFT campuses, the NIDs and the IITs that teach design. Find someone from your branch and ask them about entrances, portfolios, campus life or work.",'m'],['b1','Main button','Sign up'],['b2','Second button','Log in']]},
+  {id:'login', n:'Log in', grp:'Pages', path:'#login', pv:'head', g:1, f:[['eb','Eyebrow','Log in'],['h','Heading','Welcome back'],['lede','Intro',"Use the Google account you joined with. There's no password to remember.",'m'],['b1','Google button','Sign in with Google'],['help','Below the button','New to Bridges? The same button sets up your account, or sign up.','m'],['fac','Faculty link','Faculty? Sign in with your faculty ID']]},
+  {id:'faculty', n:'Faculty sign-in', grp:'Pages', path:'#login', pv:'head', f:[['eb','Eyebrow','Faculty sign-in'],['h','Heading','Sign in with your faculty ID'],['lede','Intro','Faculty accounts are set up by the Bridges team. Your ID and password are in the email they sent you.','m'],['b1','Button','Sign in'],['forgot','Forgotten password','Forgot your password? Only the Bridges team can reset it.','m'],['notice','Notice on their profile','The Bridges team set up this profile and your password, so only they can change them.','m']]},
+  {id:'join', n:'Sign up', grp:'Pages', path:'#join', pv:'head', g:1, f:[['eb','Eyebrow','Sign up'],['h','Heading','Join Bridges.directory'],['lede','Intro','Current students and alumni both get listed.','m'],['b1','Google button','Sign up with Google'],['start','First step',"Sign in with Google to start, then set up your profile. There's no password to create.",'m'],['stu','Student verification','A code sent to your institute email verifies you instantly. No institute email yet? Upload a certificate for two volunteers to check.','m'],['alum','Alum verification','A certificate is checked by two volunteers. A referral code from a verified alum verifies you instantly.','m']]},
+  {id:'directory', n:'Directory', grp:'Pages', path:'#directory', pv:'head', f:[['eb','Eyebrow','Directory'],['h','Heading','Find someone a few steps ahead'],['lede','Intro',"Verified students and alumni from India's design schools. You can open a few contacts each week, so inboxes stay usable.",'m'],['b1','Button','Invite friends'],['contact','Contact hint','Uses 1 of your {left} contacts left this week.']]},
+  {id:'contribute', n:'Contribute', grp:'Pages', path:'#contribute', pv:'head', f:[['eb','Eyebrow','Contribute'],['h','Heading','Help keep it free'],['lede','Intro','Keeping this platform free and accessible to everyone costs {goal} each year. If it has been useful to you, please consider contributing. Every contribution, large or small, helps us keep it running.','m'],['b1','Button','Contribute']]},
+  {id:'footer', n:'Footer', grp:'Pages', path:'#home', pv:'footer', f:[['about','About text',"A free, verified directory of students and alumni from India's design schools: all 19 NIFT campuses, the NIDs and the IITs that teach design. Built by students, kept running by contributions.",'m'],['note','Bottom line','Prototype: every person, name and address here is invented.']]},
+  {id:'notify', n:'Notifications', grp:'Messages', path:'', pv:'toast', f:[['in_t','Signed in: title','Welcome back, {first}'],['in','Signed in: message','Signed in as {name} with {account}.'],['out_t','Logged out: title','Logged out'],['out','Logged out: message','See you next time.'],['list_t','Listed: title',"You're listed"],['list','Listed: message',"Email confirmed. You're listed."]]},
+  {id:'emails', n:'Emails', grp:'Messages', path:'', pv:'email', f:[['fac_s','Faculty welcome: subject','Your Bridges.directory faculty account'],['fac_b','Faculty welcome: body',"Hello {name},\n\nThe Bridges team has set up a faculty account for you on Bridges.directory.\n\nFaculty ID: {id}\nPassword: {password}\n\nSign in at bridges.directory with Faculty sign-in. Your profile isn't listed in the directory, and only the Bridges team can change it or reset your password.\n\nThe Bridges team",'m'],['code_s','Verification code: subject','Your Bridges.directory code: {code}'],['inv_s','Invite: subject','{first} invited you to Bridges.directory'],['ref_s','Referral: subject','Your Bridges.directory referral code']]}
+].concat(DOCSRC.DOC_IDS.map(id => ({id:'doc-'+id, n:LG[id].tab === 'About' ? 'About' : LG[id].t, grp:'About and legal', path:'#'+id, pv:'legal', eb:LG[id].eyebrow, f:[['t','Title',LG[id].t],['lede','Intro',LG[id].lede,'m'],['body','Page body (HTML)',LG[id].body.trim(),'h']]})));
+const PG = {}; PAGES.forEach(p => PG[p.id] = p);
+
+/* ---------- demo data, seeded from the site's own prototype data ---------- */
+const DEV = ['Chrome · macOS','Safari · iPhone','Chrome · Android','Edge · Windows','Chrome · Windows','Safari · macOS','Firefox · Linux'];
+function seed(){
+  const R = rng(20261112), pick = a => a[Math.floor(R() * a.length)], now = Date.now(), ago = d => new Date(now - d * DAY).toISOString();
+  const members = SEED.people.map(p => normLinks(Object.assign({}, p, {cemail:'', status:'active', listed:true, limit:null, joined:ago(20 + Math.floor(R() * 420)), last:ago(R() * 13)})));
+  members.forEach(m => { if(LINK_DEMO[m.name]) m.links = LINK_DEMO[m.name].map(l => Object.assign({}, l)); });
+  members.slice(-6).forEach((m, i) => { m.joined = ago(.4 + i * 1.6); m.last = ago(i * .3); });
+  const by = n => members.find(m => m.name === n);
+  if(by('Nikhil Sharma')) by('Nikhil Sharma').status = 'suspended';
+  if(by('Varun Bishnoi')) by('Varun Bishnoi').listed = false;
+  if(by('Vikram Iyer')) by('Vikram Iyer').limit = 10;
+  const faculty = [
+    {id:'f1', fid:'BRF-1042', name:'Anjali Mehra', title:'Associate Professor', dept:'Interaction Design', inst:'nid', campus:'Ahmedabad', email:'anjali.m@nid.edu', status:'active', made:ago(40), by:'Atharva', last:ago(.3), pwAt:ago(40)},
+    {id:'f2', fid:'BRF-2318', name:'Suresh Pillai', title:'Assistant Professor', dept:'Department of Design', inst:'iitg', campus:'', email:'suresh.p@iitg.ac.in', status:'active', made:ago(9), by:'Atharva', last:null, pwAt:ago(9)}];
+  const queue = [
+    {id:'q1', kind:'student', name:'Aman Gill', inst:'nift', campus:'Mumbai', branch:'Fashion Design', year:2028, file:'bonafide-certificate.pdf', at:ago(2.4), approvals:['Riya Sen'], status:'pending', email:'aman.gill@example.com'},
+    {id:'q2', kind:'alum', name:'Sneha Patil', inst:'nid', campus:'Ahmedabad', branch:'Product Design', year:2019, file:'degree-certificate.pdf', at:ago(3.6), approvals:[], status:'pending', email:'sneha.patil@example.com'},
+    {id:'q3', kind:'student', name:'Ravi Teja', inst:'iith', campus:'', branch:'B.Des', year:2027, file:'student-id-card.jpg', at:ago(.6), approvals:['Kunal Mehta'], status:'pending', email:'ravi.teja@example.com'},
+    {id:'q4', kind:'alum', name:'Fatima Sheikh', inst:'nift', campus:'Delhi', branch:'Fashion Communication', year:2016, file:'degree-certificate.pdf', at:ago(1.2), approvals:[], status:'pending', email:'fatima.s@example.com'},
+    {id:'q5', kind:'student', name:'Omkar Jadhav', inst:'iitb', campus:'', branch:'M.Des, Interaction Design', year:2027, file:'bonafide-certificate.pdf', at:ago(5.3), approvals:[], status:'pending', email:'omkar.j@example.com'},
+    {id:'q6', kind:'student', name:'Meghna Iyer', inst:'nift', campus:'Chennai', branch:'Textile Design', year:2027, file:'bonafide-certificate.pdf', at:ago(6), approvals:['Riya Sen','Aisha Farooqui'], status:'approved', done:ago(5.2), dby:'Volunteers', email:'meghna.i@example.com'},
+    {id:'q7', kind:'alum', name:'Rahul Verma', inst:'iitd', campus:'', branch:'M.Des', year:2015, file:'scan-0412.jpg', at:ago(8), approvals:['Kunal Mehta'], status:'rejected', done:ago(7.1), dby:'Kunal Mehta', why:'The name on the certificate doesn\'t match.', email:'rahul.v@example.com'}];
+  const rp = (id, n, reason, note, from, d, extra) => ({id, mid:by(n) ? by(n).id : '', mname:n, reason, note, from, at:ago(d), status:'open', ...extra});
+  const reports = [
+    rp('r1', 'Arnav Gupta', 'Spam or promotion', 'Sent me a paid course link right after I opened his contact.', 'Harsh Vora', .8),
+    rp('r2', 'Gaurav Tomar', 'Wrong institute, branch or year', 'He was in my batch at NIFT Raebareli. I think he graduated in 2017, not 2018.', 'Tara Menon', 2.4),
+    rp('r3', 'Ira Banerjee', 'Not who they say they are', '', 'Lakshmi Narayan', 4.1),
+    rp('r4', 'Nikhil Sharma', 'Harassment or abuse', 'Kept messaging after I said I wasn\'t interested.', 'Lavanya Rao', 9, {status:'resolved', res:'Suspended the account after reading the messages.', rby:'Kunal Mehta', rat:ago(8)})];
+  const team = [
+    {id:'t1', name:'Atharva', email:'owner@bridges.directory', role:'Owner', last:ago(0), you:true},
+    {id:'t2', name:'Nisha Pawar', email:'nisha@bridges.directory', role:'Admin', last:ago(1.4)},
+    {id:'t3', name:'Kunal Mehta', email:'kunal@bridges.directory', role:'Moderator', last:ago(.2)},
+    {id:'t4', name:'Farah Siddiqui', email:'farah@bridges.directory', role:'Support', last:ago(3.2)}];
+  const settings = {limit:5, approvals:2, signups:true, pauseMsg:'Sign-ups are paused for a few days while we check new listings.', domains:Object.fromEntries(INST.map(i => [i.id, true])), goal:10000, banner:false, bannerMsg:''};
+  /* activity: two weeks of sign-ins, contacts, edits and team actions */
+  const L = [], ip = () => [49, 103, 117, 157, 182][Math.floor(R() * 5)]+'.'+Math.floor(R() * 255)+'.x.x';
+  const add = (d, o) => L.push(Object.assign({at:ago(d), dev:pick(DEV), ip:ip(), target:'', detail:''}, o));
+  const who = m => ({who:m.name, role:KIND[m.kind]});
+  for(let i = 0; i < 150; i++){
+    const d = R() * 14, m = pick(members), x = R();
+    if(x < .36) add(d, Object.assign(who(m), {type:'auth', act:'Signed in with Google', detail:googleOf(m)}));
+    else if(x < .60){ const o = pick(members.filter(y => y !== m)); add(d, Object.assign(who(m), {type:'contact', act:'Opened a contact', target:o.name, detail:'Contact '+(1 + Math.floor(R() * 5))+' of 5 this week'})); }
+    else if(x < .72) add(d, Object.assign(who(m), {type:'profile', act:'Edited their profile', detail:pick(['Portfolio','Happy to help with','Avatar','Experience','Contact email','Avatar, Portfolio'])}));
+    else if(x < .79) add(d, Object.assign(who(m), {type:'auth', act:'Logged out'}));
+    else if(x < .85) add(d, {who:pick(['Riya Sen','Kunal Mehta','Aisha Farooqui']), role:'Volunteer', type:'verify', act:'Approved a certificate', target:pick(members).name, detail:'1 of 2 approvals'});
+    else if(x < .90) add(d, Object.assign(who(m), {type:'contact', act:'Invited friends', detail:(1 + Math.floor(R() * 3))+' email addresses'}));
+    else if(x < .94){ const al = members.filter(y => y.kind === 'alum'); const a = pick(al); add(d, Object.assign(who(a), {type:'verify', act:'Sent a referral code', detail:'To an alum of '+IB[a.inst].s})); }
+    else add(d, Object.assign(who(m), {type:'profile', act:'Downloaded their data'}));
+  }
+  members.slice(-6).forEach(m => add((now - new Date(m.joined)) / DAY, Object.assign(who(m), {type:'signup', act:'Signed up', detail:KIND[m.kind]+' · verified by '+VM[m.v].toLowerCase()})));
+  add(.3, {who:'Anjali Mehra', role:'Faculty', type:'auth', act:'Signed in with faculty ID', detail:'BRF-1042'});
+  add(1.2, {who:'Unknown', role:'Visitor', type:'auth', act:'Faculty sign-in failed', detail:'BRF-1043 · wrong ID or password', sev:'warn'});
+  add(1.21, {who:'Unknown', role:'Visitor', type:'auth', act:'Faculty sign-in failed', detail:'BRF-1043 · wrong ID or password', sev:'warn'});
+  add(9, {who:'Atharva', role:'Owner', type:'admin', act:'Created a faculty account', target:'Suresh Pillai', detail:'BRF-2318'});
+  add(8, {who:'Kunal Mehta', role:'Moderator', type:'admin', act:'Suspended a member', target:'Nikhil Sharma', detail:'Report: Harassment or abuse'});
+  add(7.1, {who:'Kunal Mehta', role:'Moderator', type:'verify', act:'Rejected verification', target:'Rahul Verma', detail:'The name on the certificate doesn\'t match.'});
+  add(3, {who:'Nisha Pawar', role:'Admin', type:'admin', act:'Hid a listing', target:'Varun Bishnoi', detail:'They asked to be hidden for a while'});
+  add(2.2, {who:'Nisha Pawar', role:'Admin', type:'admin', act:'Changed the contact limit', target:'Vikram Iyer', detail:'5 → 10 a week (mentor)'});
+  reports.forEach(r => add((now - new Date(r.at)) / DAY, {who:r.from, role:'Member', type:'report', act:'Reported a listing', target:r.mname, detail:r.reason}));
+  L.sort((a, b) => b.at.localeCompare(a.at)); L.forEach((l, i) => l.id = 'ev-'+(10400 - i));
+  const history = [{at:ago(2.1), by:'Nisha Pawar', page:'directory', n:1}];
+  return {v:3, members, faculty, queue, reports, team, roles:roleDefaults(), settings, content:{}, history, logs:L};
+}
+
+/* ---------- state ---------- */
+const KEY = 'bridges-admin-v2';
+let D = (() => { try { const d = JSON.parse(localStorage.getItem(KEY)); if(d && d.v === 2){ d.members.forEach(normLinks); d.v = 3; } if(d && d.v === 3) return d; } catch(e){} return seed(); })();
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(D)); } catch(e){} };
+const S = {as:'Owner', mf:{q:'', kind:'all', g:'', st:''}, ff:{q:''}, lf:{t:'', q:'', r:'7'}, lmax:60, qf:'pending', rf:'open', page:'home', draft:{}, set:null};
+const ME = () => D.team.find(t => t.you);
+const can = p => S.as === 'Owner' || !!(D.roles[S.as] && D.roles[S.as][p]);
+const lock = p => can(p) ? '' : ' disabled title="Your role can\'t do this"';
+function log(type, act, target, detail){
+  D.logs.unshift({id:'ev-'+(10401 + D.logs.length), at:new Date().toISOString(), who:ME().name, role:ME().role, type, act, target:target || '', detail:detail || '', dev:'This browser', ip:'—'});
+  save();
+}
+const pendingQ = () => D.queue.filter(q => q.status === 'pending');
+const openR = () => D.reports.filter(r => r.status === 'open');
+const stOf = m => m.status === 'suspended' ? 'suspended' : !m.listed ? 'hidden' : 'active';
+const stPill = m => ({active:'<span class="pill pos dot">Listed</span>', hidden:'<span class="pill warn dot">Hidden</span>', suspended:'<span class="pill neg dot">Suspended</span>'})[stOf(m)];
+const memberById = id => D.members.find(m => m.id === id);
+
+/* ---------- toasts, modal, drawer ---------- */
+function toast(msg, o){
+  o = o || {}; const k = o.k || 'pos';
+  const el = document.createElement('div'); el.className = 'toast '+k;
+  el.innerHTML = '<span class="ti">'+ico(o.i || ({pos:'check', info:'info', warn:'alert', neg:'alert'})[k], 15)+'</span><div>'+(o.t ? '<b>'+esc(o.t)+'</b>' : '')+'<p>'+esc(msg)+'</p></div><button class="ib" type="button" aria-label="Dismiss">'+ico('x', 15)+'</button>';
+  const box = $('#toasts'); box.appendChild(el); while(box.children.length > 3) box.firstChild.remove();
+  const off = () => { if(!el.isConnected) return; el.animate ? el.animate([{opacity:1}, {opacity:0, transform:'translateY(6px)'}], {duration:180}).onfinish = () => el.remove() : el.remove(); };
+  $('.ib', el).addEventListener('click', off); setTimeout(off, o.d || 4200);
+  if(el.animate) el.animate([{opacity:0, transform:'translateY(10px)'}, {opacity:1, transform:'none'}], {duration:240, easing:'cubic-bezier(.32,.72,0,1)'});
+}
+function modal(html, label){
+  const m = document.createElement('div'); m.className = 'md'; m.setAttribute('role', 'dialog'); m.setAttribute('aria-modal', 'true'); m.setAttribute('aria-label', label || 'Dialog');
+  m.innerHTML = '<div class="md-in">'+html+'</div>'; const prev = document.activeElement;
+  const close = () => { m.remove(); document.removeEventListener('keydown', key); if(prev && prev.focus) prev.focus(); };
+  const key = e => { if(e.key === 'Escape'){ e.stopPropagation(); close(); } };
+  m.addEventListener('click', e => { if(e.target === m || e.target.closest('[data-mclose]')) close(); });
+  document.addEventListener('keydown', key); document.body.appendChild(m);
+  const f = $('input:not([type=checkbox]),select,textarea', m) || $('.btn.primary,.btn.danger', m); if(f) f.focus();
+  m.close = close; return m;
+}
+const mdHead = (t, sub) => '<div class="md-h"><div><h3>'+t+'</h3>'+(sub ? '<p class="help">'+sub+'</p>' : '')+'</div><button class="ib" type="button" data-mclose aria-label="Close">'+ico('x', 18)+'</button></div>';
+function confirmBox(o, cb){
+  const m = modal(mdHead(o.t, o.sub) + (o.body || '') + '<div class="md-f"><button class="btn ghost" type="button" data-mclose>Cancel</button><button class="btn '+(o.danger ? 'danger' : 'primary')+'" type="button" data-ok>'+(o.ok || 'Confirm')+'</button></div>', o.t);
+  $('[data-ok]', m).addEventListener('click', () => { if(cb(m) !== false) m.close(); });
+  return m;
+}
+let dwPrev = null;
+function drawer(title, body, foot){
+  closeDrawer(true);
+  const d = document.createElement('div'); d.className = 'dw'; d.id = 'dw';
+  d.innerHTML = '<div class="dw-s" data-dwclose></div><div class="dw-p" role="dialog" aria-modal="true" aria-label="'+esc(title)+'"><div class="dw-h"><h3>'+esc(title)+'</h3><button class="ib" type="button" data-dwclose aria-label="Close">'+ico('x', 18)+'</button></div><div class="dw-b">'+body+'</div>'+(foot ? '<div class="dw-f">'+foot+'</div>' : '')+'</div>';
+  dwPrev = document.activeElement; document.body.appendChild(d); document.body.style.overflow = 'hidden';
+  requestAnimationFrame(() => requestAnimationFrame(() => d.classList.add('on')));
+  d.addEventListener('click', e => { if(e.target.closest('[data-dwclose]')) closeDrawer(); });
+  setTimeout(() => { const f = $('.dw-b input:not([disabled]),.dw-b select:not([disabled])', d) || $('[data-dwclose].ib', d); if(f) f.focus({preventScroll:true}); }, 60);
+  return d;
+}
+function closeDrawer(now){
+  const d = $('#dw'); if(!d) return; document.body.style.overflow = '';
+  if(now){ d.remove(); return; }
+  d.classList.remove('on'); setTimeout(() => d.remove(), 300); if(dwPrev && dwPrev.isConnected) dwPrev.focus();
+}
+document.addEventListener('keydown', e => { if(e.key === 'Escape' && $('#dw') && !$('.md')) closeDrawer(); if(e.key === 'Escape') document.body.classList.remove('nav-open'); });
+async function download(name, text, type){
+  const dl = window.claude && window.claude.use ? await window.claude.use('downloads').catch(() => null) : null;
+  if(dl){
+    try { await dl.save({filename:name, data:text}); toast('Saved as '+name+'.', {t:'Download saved', k:'info', i:'download'}); }
+    catch(err){ if(err && err.code === 'declined') toast('Nothing was saved.', {t:'Download cancelled', k:'info'}); else if(err && err.code === 'rate_limited') toast('A save prompt is already open.', {t:'One moment', k:'warn'}); else toast('Downloads aren\'t available here.', {t:'Couldn\'t save', k:'warn'}); }
+    return;
+  }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], {type:type || 'text/csv'})); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  toast('Saved as '+name+'.', {t:'Download started', k:'info', i:'download'});
+}
+const csv = rows => rows.map(r => r.map(v => { v = String(v == null ? '' : v); return /[",\n]/.test(v) ? '"'+v.replace(/"/g, '""')+'"' : v; }).join(',')).join('\n');
+const copy = (text, what) => { const ok = () => toast(what+' copied.', {t:'Copied', k:'info', i:'copy'}); if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(ok, ok); else ok(); };
+
+/* ---------- shell ---------- */
+const NAV = [
+  [null, [['overview','Overview','layout']]],
+  ['People', [['members','Members','users'], ['faculty','Faculty accounts','key', null, 'faculty']]],
+  ['Moderation', [['verify','Verification','shieldok', () => pendingQ().length, 'verify'], ['reports','Reports','flag', () => openR().length, 'reports'], ['logs','Activity log','activity', null, 'logs']]],
+  ['Site', [['content','Page text','type', null, 'content'], ['roles','Roles and permissions','lock'], ['settings','Settings','sliders', null, 'settings']]]];
+const TITLES = {overview:'Overview', members:'Members', faculty:'Faculty accounts', verify:'Verification', reports:'Reports', logs:'Activity log', content:'Page text', roles:'Roles and permissions', settings:'Settings'};
+const NEEDS = {faculty:'faculty', verify:'verify', reports:'reports', logs:'logs', content:'content', settings:'settings'};
+const route = () => { const h = (location.hash || '').replace(/^#/, '').split('/'); return {v:TITLES[h[0]] ? h[0] : 'overview', arg:h[1] || ''}; };
+function shell(){
+  if(!sessionStorage.getItem('bridges-admin-in')){ renderGate(); return false; }
+  if(!$('.app')){
+    $('#root').innerHTML = '<div class="app"><aside class="side" id="side" aria-label="Admin menu"></aside><div class="scrim" id="scrim" hidden></div><div class="main"><header class="top"><button class="ib menu-b" type="button" id="menuB" aria-label="Open menu">'+ico('menu', 20)+'</button><h1 id="title"></h1><span class="sp"></span>'
+      + '<label class="qs"><span class="sr" hidden>Search members</span>'+ico('search', 15)+'<input class="input" id="qs" type="search" placeholder="Search members" aria-label="Search members"></label>'
+      + '<a class="btn secondary sm" href="'+SITE+'" target="_blank" rel="noopener noreferrer">'+ico('ext', 14)+'<span>Open site</span></a></header><div id="asbar"></div><main class="view" id="view"></main></div></div>';
+    $('#menuB').addEventListener('click', () => { document.body.classList.add('nav-open'); $('#scrim').hidden = false; });
+    $('#scrim').addEventListener('click', () => { document.body.classList.remove('nav-open'); $('#scrim').hidden = true; });
+    $('#qs').addEventListener('keydown', e => { if(e.key === 'Enter'){ S.mf.q = e.target.value.trim(); e.target.value = ''; if(route().v === 'members') render(); else location.hash = 'members'; } });
+  }
+  return true;
+}
+function renderSide(){
+  const cur = route().v, me = ME();
+  $('#side').innerHTML = '<a class="brand" href="#overview"><span>Bridges<span class="tld">.directory</span></span><span class="pill">Admin</span></a>'
+    + NAV.map(([h, items]) => '<nav class="nav" aria-label="'+(h || 'Main')+'">'+(h ? '<div class="nav-h">'+h+'</div>' : '')+items.filter(it => !it[4] || can(it[4])).map(([v, l, ic, n]) => { const c = n ? n() : 0; return '<a href="#'+v+'"'+(cur === v ? ' aria-current="page"' : '')+'>'+ico(ic, 17)+'<span>'+l+'</span>'+(c ? '<span class="nb" aria-label="'+c+' waiting">'+c+'</span>' : '')+'</a>'; }).join('')+'</nav>').join('')
+    + '<div class="side-f"><div class="me">'+ini(me.name, 'team')+'<div style="min-width:0"><b class="ell">'+esc(me.name)+'</b><small>'+esc(me.role)+'</small></div><button class="ib" type="button" id="themeB" aria-label="Switch to '+(isDark() ? 'light' : 'dark')+' mode">'+ico(isDark() ? 'sun' : 'moon', 17)+'</button></div>'
+    + '<label class="asr"><span class="label">Preview the admin as</span><select class="input" id="asSel">'+ROLES.map(r => '<option'+(r === S.as ? ' selected' : '')+'>'+r+'</option>').join('')+'</select></label>'
+    + '<div class="side-l"><button class="lnkb" type="button" id="outB" style="font-weight:400">Sign out</button></div>'
+    + '<p class="proto">Prototype: changes are saved in this browser only. They aren\'t connected to Bridges.directory yet.</p></div>';
+  $('#themeB').addEventListener('click', () => { setTheme(isDark() ? 'light' : 'dark'); renderSide(); });
+  $('#asSel').addEventListener('change', e => { S.as = e.target.value; const v = route().v; if(NEEDS[v] && !can(NEEDS[v])) location.hash = 'overview'; else render(); toast(S.as === 'Owner' ? 'You\'re back to your own view.' : 'You\'re seeing what a '+S.as+' can do. Nothing changes for them.', {t:'Previewing as '+S.as, k:'info', i:'eye'}); });
+  $('#outB').addEventListener('click', () => { sessionStorage.removeItem('bridges-admin-in'); location.hash = ''; renderGate(); });
+}
+const isDark = () => document.documentElement.dataset.theme === 'dark';
+function setTheme(t){ document.documentElement.dataset.theme = t; try { localStorage.setItem('bridges-admin-theme', t); } catch(e){} }
+try { const t = localStorage.getItem('bridges-admin-theme'); if(t) document.documentElement.dataset.theme = t; else if(matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.dataset.theme = 'dark'; } catch(e){}
+function renderGate(){
+  $('#root').innerHTML = '<div class="gate"><div class="gate-c"><div><span class="pill">Admin</span></div><div style="display:grid;gap:10px"><h1>Bridges.directory admin</h1><p>For the Bridges team only. Sign in with the Google account the owner added to the team.</p></div>'
+    + '<button class="gbtn" type="button" id="gIn">'+GLOGO+'<span>Sign in with Google</span></button>'
+    + '<p class="proto">Prototype: this signs you in as the owner. The live version would check the team list and ask for 2-step verification.</p></div></div>';
+  $('#gIn').addEventListener('click', () => { sessionStorage.setItem('bridges-admin-in', '1'); ME().last = new Date().toISOString(); save(); if(!location.hash) location.hash = 'overview'; render(); });
+}
+function render(){
+  if(!shell()) return;
+  const r = route();
+  if(NEEDS[r.v] && !can(NEEDS[r.v])){ location.replace('#overview'); return; }
+  document.title = TITLES[r.v]+' · Bridges admin';
+  $('#title').textContent = TITLES[r.v];
+  $('#asbar').innerHTML = S.as !== 'Owner' ? '<div class="asbar">'+ico('eye', 15)+'<span>Previewing as '+S.as+'. Actions this role can\'t take are turned off.</span><button class="lnkb" type="button" id="asOff">Back to Owner</button></div>' : '';
+  if($('#asOff')) $('#asOff').addEventListener('click', () => { S.as = 'Owner'; render(); });
+  renderSide();
+  document.body.classList.remove('nav-open'); $('#scrim').hidden = true;
+  ({overview:vOverview, members:vMembers, faculty:vFaculty, verify:vVerify, reports:vReports, logs:vLogs, content:vContent, roles:vRoles, settings:vSettings})[r.v](r.arg);
+}
+window.addEventListener('hashchange', () => { closeDrawer(true); render(); window.scrollTo(0, 0); });
+const ph = (t, p, acts) => '<div class="ph"><div><h2>'+t+'</h2>'+(p ? '<p>'+p+'</p>' : '')+'</div>'+(acts ? '<div class="acts">'+acts+'</div>' : '')+'</div>';
+
+/* ---------- overview ---------- */
+function vOverview(){
+  const now = Date.now(), wk = 7 * DAY, inWk = iso => now - new Date(iso) < wk;
+  const ms = D.members, stu = ms.filter(m => m.kind === 'student').length, newWk = ms.filter(m => inWk(m.joined)).length;
+  const q = pendingQ(), oldest = q.reduce((a, x) => !a || x.at < a ? x.at : a, ''), rs = openR();
+  const sIn = D.logs.filter(l => l.type === 'auth' && /^Signed in/.test(l.act) && inWk(l.at)).length;
+  const cWk = D.logs.filter(l => l.act === 'Opened a contact' && inWk(l.at)).length;
+  const tile = (href, ic, label, n, d, hot) => '<a class="card tile'+(hot ? ' hot' : '')+'" href="#'+href+'"><small>'+ico(ic, 14)+label+'</small><b>'+n+'</b><span class="d">'+d+'</span></a>';
+  const attn = [];
+  const late = q.filter(x => now - new Date(x.at) > 2 * DAY);
+  if(late.length) attn.push(['verify', 'clock', late.length+' verification request'+(late.length === 1 ? ' has' : 's have')+' waited over 2 days', 'Oldest: '+rel(late.reduce((a, x) => x.at < a ? x.at : a, late[0].at))]);
+  if(rs.length) attn.push(['reports', 'flag', rs.length+' open report'+(rs.length === 1 ? '' : 's'), 'Newest: '+rel(rs.reduce((a, x) => x.at > a ? x.at : a, rs[0].at))]);
+  const fails = D.logs.filter(l => l.act === 'Faculty sign-in failed' && now - new Date(l.at) < 3 * DAY).length;
+  if(fails) attn.push(['logs', 'alert', fails+' failed faculty sign-in'+(fails === 1 ? '' : 's')+' in 3 days', 'Check the activity log']);
+  const never = D.faculty.filter(f => !f.last && f.status === 'active');
+  if(never.length) attn.push(['faculty', 'key', never.length+' faculty account'+(never.length === 1 ? ' hasn\'t' : 's haven\'t')+' signed in yet', never.map(f => f.name).join(', ')]);
+  const sus = ms.filter(m => m.status === 'suspended').length;
+  if(sus) attn.push(['members', 'ban', sus+' suspended member'+(sus === 1 ? '' : 's'), 'Review when the reason no longer applies']);
+  const byG = GROUPS.map(([g, l]) => { const xs = ms.filter(m => IB[m.inst] && IB[m.inst].g === g); return [l, xs.filter(m => m.kind === 'student').length, xs.filter(m => m.kind === 'alum').length, xs.length]; });
+  $('#view').innerHTML = ph('Good '+(new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 17 ? 'afternoon' : 'evening')+', '+esc(ME().name), 'Here\'s what\'s happening on Bridges.directory.')
+    + '<div class="tiles">'
+    + tile('members', 'users', 'Members', ms.length, '+'+newWk+' this week')
+    + tile('members', 'cap', 'Students · Alumni', stu+' · '+(ms.length - stu), 'Listed and verified')
+    + tile('faculty', 'key', 'Faculty accounts', D.faculty.length, 'Not in the directory')
+    + tile('verify', 'shieldok', 'Waiting for verification', q.length, oldest ? 'Oldest '+rel(oldest).toLowerCase() : 'All caught up', late.length)
+    + tile('reports', 'flag', 'Open reports', rs.length, rs.length ? 'Reply within 3 days' : 'Nothing open', rs.length)
+    + tile('logs', 'activity', 'Sign-ins', sIn, 'Last 7 days')
+    + tile('logs', 'mail', 'Contacts opened', cWk, 'Last 7 days')
+    + tile('settings', 'sliders', 'Contacts per week', D.settings.limit, 'Per member, by default')
+    + '</div>'
+    + '<div class="cols"><section class="card"><div class="card-h"><h3>Recent activity</h3><a class="btn ghost sm" href="#logs">See all'+ico('right', 14)+'</a></div><div class="tbl" style="--cols:minmax(0,1.3fr) minmax(0,1.6fr) 96px;--cols-m:minmax(0,1fr) auto">'
+    + D.logs.slice(0, 8).map(l => '<div class="tr"><div class="who">'+ini(l.who, roleCls(l.role))+'<span><b>'+esc(l.who)+'</b><small class="ro">'+esc(l.role)+'</small><small class="mo">'+esc(l.act+(l.target ? ': '+l.target : ''))+'</small></span></div><div class="hm" style="min-width:0"><span class="lt '+l.type+(l.sev ? ' '+l.sev : '')+'"><i></i>'+esc(l.act)+'</span>'+(l.target ? '<small class="sub ell" style="display:block">'+esc(l.target)+'</small>' : '')+'</div><span class="sub" style="text-align:right">'+rel(l.at)+'</span></div>').join('')
+    + '</div></section><div style="display:grid;gap:var(--sp-l)"><section class="card"><div class="card-h"><h3>Needs attention</h3></div>'
+    + (attn.length ? '<div class="tbl" style="--cols:28px minmax(0,1fr) 16px;--cols-m:28px minmax(0,1fr) 16px">'+attn.map(([h, ic, t, s]) => '<a class="tr" href="#'+h+'" style="text-decoration:none"><span class="ini" style="width:28px;height:28px">'+ico(ic, 14)+'</span><span style="min-width:0"><b style="font-weight:500;display:block">'+t+'</b><small class="sub ell" style="display:block">'+esc(s)+'</small></span><span class="chev">'+ico('right', 14)+'</span></a>').join('')+'</div>' : '<div class="empty">'+ico('check', 20)+'<span>Nothing needs you right now.</span></div>')
+    + '</section><section class="card"><div class="card-h"><h3>By institute</h3></div><div class="tbl" style="--cols:minmax(0,1fr) 70px 70px 60px;--cols-m:minmax(0,1fr) 60px 60px 50px"><div class="tr th"><span>Institute</span><span>Students</span><span>Alumni</span><span>Total</span></div>'
+    + byG.map(([l, s, a, t]) => '<div class="tr"><b style="font-weight:500">'+l+'s</b><span>'+s+'</span><span>'+a+'</span><b style="font-weight:600">'+t+'</b></div>').join('')+'</div></section></div></div>';
+}
+const roleCls = r => r === 'Student' ? 'stu' : r === 'Alum' ? 'alum' : r === 'Faculty' ? 'fac' : ROLES.indexOf(r) >= 0 ? 'team' : '';
+
+/* ---------- members ---------- */
+function vMembers(){
+  const f = S.mf;
+  $('#view').innerHTML = ph('Members', 'Everyone on Bridges.directory. Open someone to edit, hide, suspend or delete them.', can('export') ? '<button class="btn secondary" type="button" id="mExp">'+ico('download', 16)+'Export CSV</button>' : '')
+    + '<section class="card"><div class="tools"><label class="srch">'+ico('search', 15)+'<input class="input" id="mQ" type="search" placeholder="Name, email or institute" aria-label="Search members" value="'+esc(f.q)+'"></label>'
+    + '<div class="seg" role="group" aria-label="Type">'+[['all','Everyone'],['student','Students'],['alum','Alumni']].map(([k, l]) => '<button type="button" data-mk="'+k+'" aria-pressed="'+(f.kind === k)+'">'+l+'</button>').join('')+'</div>'
+    + '<select class="input" id="mG" aria-label="Institute"><option value="">All institutes</option>'+GROUPS.map(([g, l]) => '<option value="'+g+'"'+(f.g === g ? ' selected' : '')+'>'+l+'s</option>').join('')+'</select>'
+    + '<select class="input" id="mS" aria-label="Status"><option value="">Any status</option><option value="active"'+(f.st === 'active' ? ' selected' : '')+'>Listed</option><option value="hidden"'+(f.st === 'hidden' ? ' selected' : '')+'>Hidden</option><option value="suspended"'+(f.st === 'suspended' ? ' selected' : '')+'>Suspended</option></select>'
+    + '<span class="cnt" id="mN"></span></div><div class="tbl" id="mList"></div></section>';
+  drawMembers();
+  $('#mQ').addEventListener('input', e => { f.q = e.target.value; drawMembers(); });
+  $$('[data-mk]').forEach(b => b.addEventListener('click', () => { f.kind = b.dataset.mk; $$('[data-mk]').forEach(x => x.setAttribute('aria-pressed', x === b)); drawMembers(); }));
+  $('#mG').addEventListener('change', e => { f.g = e.target.value; drawMembers(); });
+  $('#mS').addEventListener('change', e => { f.st = e.target.value; drawMembers(); });
+  if($('#mExp')) $('#mExp').addEventListener('click', () => {
+    download('bridges-members.csv', csv([['Name','Type','Institute','Branch','Year','Google account','Institute email','Contact email','Links','Verified by','Status','Weekly contacts','Joined','Last active']]
+      .concat(D.members.map(m => [m.name, KIND[m.kind], instLabel(m), m.branch, m.year, googleOf(m), instEmailOf(m), m.kind === 'alum' ? contactOf(m) : '', linksText(m.links || []), VM[m.v], stOf(m), m.limit || D.settings.limit, fmtD(m.joined), fmtD(m.last)]))));
+    log('admin', 'Exported members', '', D.members.length+' rows');
+  });
+  if(route().arg) openMember(route().arg);
+}
+function drawMembers(){
+  const f = S.mf, q = f.q.trim().toLowerCase();
+  const list = D.members.filter(m => (f.kind === 'all' || m.kind === f.kind) && (!f.g || (IB[m.inst] && IB[m.inst].g === f.g)) && (!f.st || stOf(m) === f.st)
+    && (!q || [m.name, m.email, m.email2, m.cemail, instLabel(m), m.branch].join(' ').toLowerCase().indexOf(q) >= 0)).sort((a, b) => b.joined.localeCompare(a.joined));
+  $('#mN').textContent = list.length+' of '+D.members.length;
+  const cols = '--cols:minmax(0,2.2fr) 84px minmax(0,1.2fr) minmax(0,1.4fr) 104px 100px 16px;--cols-t:minmax(0,2fr) 84px minmax(0,1.2fr) 104px 16px;--cols-m:minmax(0,1fr) auto';
+  $('#mList').setAttribute('style', cols);
+  $('#mList').innerHTML = '<div class="tr th"><span>Name</span><span>Type</span><span>Institute</span><span class="ht">Branch and year</span><span>Status</span><span class="ht">Joined</span><span></span></div>'
+    + (list.length ? list.map(m => '<button class="tr" type="button" data-om="'+m.id+'"><span class="who">'+ini(m.name, m.kind === 'student' ? 'stu' : 'alum')+'<span><b>'+esc(m.name)+'</b><small>'+esc(googleOf(m))+'</small><small class="mo">'+esc(KIND[m.kind]+' · '+instLabel(m))+'</small></span></span>'
+      + '<span class="hm">'+kindPill(m.kind)+'</span><span class="hm ell">'+esc(instLabel(m))+'</span><span class="hm ht ell sub">'+esc(m.branch)+' · '+m.year+'</span><span>'+stPill(m)+'</span><span class="hm ht sub">'+fmtD(m.joined)+'</span><span class="chev hm">'+ico('right', 14)+'</span></button>').join('')
+      : '<div class="empty">'+ico('search', 20)+'<span>No members match these filters.</span></div>');
+  $$('[data-om]', $('#mList')).forEach(b => b.addEventListener('click', () => openMember(b.dataset.om)));
+}
+function openMember(id){
+  const m = memberById(id); if(!m) return;
+  const E = can('edit'), H = can('suspend'), dis = E ? '' : ' disabled', stu = m.kind === 'student';
+  const acts = D.logs.filter(l => l.who === m.name || l.target === m.name).slice(0, 6);
+  const xp = (m.exp || []);
+  const xrow = (x, i) => '<div class="xrow" data-xi="'+i+'"><select class="input" data-x="t" aria-label="Type"'+dis+'>'+Object.keys(EXP_T).map(k => '<option value="'+k+'"'+(x.t === k ? ' selected' : '')+'>'+EXP_T[k]+'</option>').join('')+'</select><input class="input" data-x="role" placeholder="Role" aria-label="Role" value="'+esc(x.role)+'"'+dis+'><input class="input" data-x="org" placeholder="Organisation" aria-label="Organisation" value="'+esc(x.org)+'"'+dis+'><button class="ib" type="button" data-xdel aria-label="Remove experience"'+dis+'>'+ico('trash', 15)+'</button></div>';
+  const body = '<div class="sec"><div class="sum">'+ini(m.name, 'lg '+(stu ? 'stu' : 'alum'))+'<div style="min-width:0"><h3>'+esc(m.name)+'</h3><div class="pills">'+kindPill(m.kind)+stPill(m)+(m.vol ? '<span class="pill">Volunteer</span>' : '')+'</div></div></div>'
+    + '<div class="kv"><div><small>Joined</small><b>'+fmtD(m.joined)+'</b></div><div><small>Last active</small><b>'+rel(m.last)+'</b></div><div><small>Verified by</small><b>'+VM[m.v]+'</b></div></div></div>'
+    + (E ? '' : '<div class="callout">'+ico('lock', 15)+'<span>Your role can see this profile but can\'t edit it.</span></div>')
+    + '<div class="sec"><h4>Profile</h4><div class="grid2"><div class="fld"><label class="label" for="e-name">Full name</label><input class="input" id="e-name" value="'+esc(m.name)+'"'+dis+'></div>'
+    + '<div class="fld"><label class="label" for="e-kind">Type</label><select class="input" id="e-kind"'+dis+'><option value="student"'+(stu ? ' selected' : '')+'>Current student</option><option value="alum"'+(!stu ? ' selected' : '')+'>Alum</option></select></div></div>'
+    + '<div class="fld"><label class="label" for="e-inst">Institute</label><select class="input" id="e-inst"'+dis+'>'+instOptions(m.inst+(m.campus ? '|'+m.campus : ''))+'</select></div>'
+    + '<div class="grid2"><div class="fld"><label class="label" for="e-branch">Branch</label><select class="input" id="e-branch"'+dis+'>'+(IB[m.inst] ? IB[m.inst].br : []).map(b => '<option'+(b === m.branch ? ' selected' : '')+'>'+esc(b)+'</option>').join('')+'</select></div>'
+    + '<div class="fld"><label class="label" for="e-year">'+(stu ? 'Graduating in' : 'Graduated in')+'</label><input class="input" id="e-year" type="number" min="1970" max="'+(THIS_YEAR + 6)+'" value="'+m.year+'"'+dis+'></div></div>'
+    + '<div class="fld"><span class="label">Portfolio and links</span>'+linksEditor(m.links, dis)+'<span class="help">Up to '+LINK_MAX+'. Members see them when they open this contact.</span></div>'
+    + '<div class="fld"><span class="label">Happy to help with</span><div class="checks">'+OPEN.map((o, i) => '<label><input type="checkbox" data-open="'+i+'"'+(m.open.indexOf(i) >= 0 ? ' checked' : '')+dis+'>'+esc(o)+'</label>').join('')+'</div></div>'
+    + '<div class="fld" id="e-xpw"'+(stu ? ' hidden' : '')+'><span class="label">Experience</span><div style="display:grid;gap:8px" id="e-xp">'+xp.map(xrow).join('')+'</div><button class="btn ghost sm" type="button" id="e-xadd" style="justify-self:start"'+dis+'>'+ico('plus', 14)+'Add experience</button></div></div>'
+    + '<div class="sec"><h4>Sign-in and contact</h4><div class="fld"><label class="label" for="e-g">Google account</label><input class="input" id="e-g" type="email" value="'+esc(googleOf(m))+'"'+dis+'><span class="help">They sign in with this. Change it only if they\'ve lost access and you\'ve confirmed who they are.</span></div>'
+    + (stu ? '<div class="fld"><label class="label" for="e-ie">Institute email</label><input class="input" id="e-ie" type="email" value="'+esc(instEmailOf(m))+'" placeholder="Not added"'+dis+'><span class="help">Verified with a one-time code. Members see it when they open this contact.</span></div>'
+           : '<div class="fld"><label class="label" for="e-ce">Contact email</label><input class="input" id="e-ce" type="email" value="'+esc(contactOf(m))+'"'+dis+'><span class="help">Members see this when they open the contact.</span></div>')+'</div>'
+    + '<div class="sec"><h4>Listing and limits</h4>'
+    + '<label class="tgl"><span><b>Listed in the directory</b><span class="help">When off, the profile is hidden from the directory and browse pages, but they can still sign in.</span></span><input type="checkbox" id="e-listed"'+(m.listed ? ' checked' : '')+(H ? '' : ' disabled')+'></label>'
+    + '<div class="fld"><label class="label" for="e-limit">Contacts they can open each week</label><select class="input" id="e-limit"'+dis+'><option value="">Default ('+D.settings.limit+')</option>'+[0, 1, 2, 3, 5, 8, 10, 15, 20].filter(n => n !== D.settings.limit).map(n => '<option value="'+n+'"'+(m.limit === n ? ' selected' : '')+'>'+n+(n === 0 ? ' (can\'t open contacts)' : '')+'</option>').join('')+'</select></div>'
+    + (stu ? '<label class="tgl"><span><b>Volunteer</b><span class="help">Volunteers review certificates from new members.</span></span><input type="checkbox" id="e-vol"'+(m.vol ? ' checked' : '')+dis+'></label>' : '')+'</div>'
+    + '<div class="sec"><h4>Account status</h4><div class="seg" role="group" aria-label="Account status" id="e-st">'+[['active','Active'],['suspended','Suspended']].map(([k, l]) => '<button type="button" data-st="'+k+'" aria-pressed="'+(m.status === k)+'"'+(H ? '' : ' disabled')+'>'+l+'</button>').join('')+'</div><p class="help">Suspended members can\'t sign in and aren\'t listed. Their data stays until you delete it.</p></div>'
+    + '<div class="sec"><h4>Recent activity</h4>'+(acts.length ? '<div class="mini">'+acts.map(l => '<div><b style="font-weight:400">'+esc(l.who === m.name ? l.act+(l.target ? ': '+l.target : '') : l.who+' · '+l.act)+'</b><span>'+rel(l.at)+'</span></div>').join('')+'</div>' : '<p class="help">Nothing in the last two weeks.</p>')
+    + (can('logs') ? '<button class="btn ghost sm" type="button" id="e-logs" style="justify-self:start">See all activity'+ico('right', 14)+'</button>' : '')+'</div>'
+    + (can('delete') ? '<div class="sec dz"><h4>Delete profile</h4><p class="help">Removes the listing at once and erases their data within 30 days. This can\'t be undone.</p><button class="btn secondary neg" type="button" id="e-del" style="justify-self:start">'+ico('trash', 15)+'Delete profile</button></div>' : '');
+  const d = drawer(m.name, body, '<p class="err" id="e-err" role="alert"></p><button class="btn ghost" type="button" data-dwclose>'+(E || H ? 'Cancel' : 'Close')+'</button>'+(E || H ? '<button class="btn primary" type="button" id="e-save">Save changes</button>' : ''));
+  let st = m.status;
+  $('#e-inst', d).addEventListener('change', e => { const x = splitInst(e.target.value); $('#e-branch', d).innerHTML = IB[x.inst].br.map(b => '<option>'+esc(b)+'</option>').join(''); });
+  $('#e-kind', d).addEventListener('change', e => { $('#e-xpw', d).hidden = e.target.value === 'student'; });
+  $('#e-xadd', d).addEventListener('click', () => { const w = $('#e-xp', d); w.insertAdjacentHTML('beforeend', xrow({t:'job', role:'', org:''}, w.children.length)); $('input', w.lastElementChild).focus(); });
+  $('#e-xp', d).addEventListener('click', e => { const b = e.target.closest('[data-xdel]'); if(b) b.closest('.xrow').remove(); });
+  $$('[data-st]', d).forEach(b => b.addEventListener('click', () => { st = b.dataset.st; $$('[data-st]', d).forEach(x => x.setAttribute('aria-pressed', x === b)); }));
+  if($('#e-logs', d)) $('#e-logs', d).addEventListener('click', () => { S.lf = {t:'', q:m.name, r:'all'}; location.hash = 'logs'; });
+  if($('#e-del', d)) $('#e-del', d).addEventListener('click', () => deleteMember(m));
+  if($('#e-save', d)) $('#e-save', d).addEventListener('click', () => {
+    const err = $('#e-err', d); err.textContent = ''; $$('.input', d).forEach(i => i.removeAttribute('aria-invalid'));
+    const bad = (sel, msg) => { const i = $(sel, d); i.setAttribute('aria-invalid', 'true'); i.focus(); err.textContent = msg; };
+    const name = $('#e-name', d).value.trim(), g = $('#e-g', d).value.trim().toLowerCase(), kind = $('#e-kind', d).value;
+    if(!name) return bad('#e-name', 'Add their name.');
+    if(!validEmail(g)) return bad('#e-g', 'Enter a valid Google account.');
+    if(D.members.some(x => x !== m && googleOf(x) === g)) return bad('#e-g', 'Another member already signs in with this account.');
+    const x = splitInst($('#e-inst', d).value), year = +$('#e-year', d).value;
+    if(!year || year < 1970 || year > THIS_YEAR + 6) return bad('#e-year', 'Enter a year between 1970 and '+(THIS_YEAR + 6)+'.');
+    const badL = $$('.lk-u', d).find(i => i.value.trim() && badLink(i.value.trim()));
+    if(badL){ badL.setAttribute('aria-invalid', 'true'); badL.focus(); err.textContent = '"'+badL.value.trim()+'" doesn\'t look like a web address.'; return; }
+    const next = {name, kind, inst:x.inst, campus:x.campus, branch:$('#e-branch', d).value, year, links:readLinks(d), open:$$('[data-open]', d).filter(c => c.checked).map(c => +c.dataset.open),
+      listed:$('#e-listed', d).checked, limit:$('#e-limit', d).value === '' ? null : +$('#e-limit', d).value, status:st, vol:$('#e-vol', d) ? $('#e-vol', d).checked : false};
+    if(kind === 'student'){ const ie = ($('#e-ie', d) ? $('#e-ie', d).value.trim().toLowerCase() : '');
+      if(ie && (!validEmail(ie) || !ie.endsWith(IB[x.inst].d))) return bad('#e-ie', 'Use an address on '+IB[x.inst].d+', or leave it empty.');
+      Object.assign(next, ie ? {email:ie, email2:g} : {email:g, email2:''}, {cemail:''}); }
+    else { const ce = $('#e-ce', d) ? $('#e-ce', d).value.trim() : ''; if(ce && !validEmail(ce)) return bad('#e-ce', 'Enter a valid contact email.');
+      Object.assign(next, {email:g, email2:'', cemail:ce && ce.toLowerCase() !== g ? ce : ''});
+      next.exp = $$('.xrow', d).map(r => ({t:$('[data-x="t"]', r).value, role:$('[data-x="role"]', r).value.trim(), org:$('[data-x="org"]', r).value.trim(), from:m.year, to:0})).filter(e => e.role); }
+    const label = {name:'Name', kind:'Type', inst:'Institute', campus:'Campus', branch:'Branch', year:'Year', links:'Links', open:'Happy to help with', listed:'Listing', limit:'Weekly contacts', status:'Status', vol:'Volunteer', email:'Emails', email2:'Emails', cemail:'Contact email', exp:'Experience'};
+    const changed = Object.keys(next).filter(k => JSON.stringify(next[k]) !== JSON.stringify(m[k] === undefined ? (k === 'exp' ? [] : m[k]) : m[k]));
+    if(!changed.length){ closeDrawer(); return; }
+    const was = {status:m.status, listed:m.listed};
+    Object.assign(m, next); if(kind === 'student') m.exp = [];
+    const names = Array.from(new Set(changed.map(k => label[k])));
+    if(was.status !== m.status) log('admin', m.status === 'suspended' ? 'Suspended a member' : 'Reinstated a member', m.name, '');
+    if(was.listed !== m.listed) log('admin', m.listed ? 'Listed a member again' : 'Hid a listing', m.name, '');
+    const rest = names.filter(n => n !== 'Status' && n !== 'Listing');
+    if(rest.length) log('admin', 'Edited a profile', m.name, rest.join(', '));
+    save(); closeDrawer(); drawMembers(); renderSide(); toast(names.join(', ')+'.', {t:'Saved '+m.name.split(' ')[0]+'\'s profile'});
+  });
+}
+function deleteMember(m, after){
+  confirmBox({t:'Delete '+esc(m.name)+'\'s profile?', sub:'Their listing disappears now and their data is erased within 30 days. This can\'t be undone.', ok:'Delete profile', danger:true,
+    body:'<div class="fld"><label class="label" for="dl-r">Reason</label><select class="input" id="dl-r"><option>They asked to be deleted</option><option>Fake or duplicate account</option><option>Broke the community guidelines</option><option>Other</option></select></div>'
+      + '<label class="tgl"><span><b>Block this Google account</b><span class="help">'+esc(googleOf(m))+' can\'t sign up again.</span></span><input type="checkbox" id="dl-b"></label>'}, md => {
+    const why = $('#dl-r', md).value, block = $('#dl-b', md).checked;
+    D.members = D.members.filter(x => x !== m);
+    D.reports.filter(r => r.mid === m.id && r.status === 'open').forEach(r => Object.assign(r, {status:'resolved', res:'Deleted the profile.', rby:ME().name, rat:new Date().toISOString()}));
+    log('admin', 'Deleted a profile', m.name, why+(block ? ' · Google account blocked' : ''));
+    closeDrawer(); render(); toast(m.name+'\'s profile is gone. Their data will be erased within 30 days.', {t:'Profile deleted', k:'info', i:'trash'});
+    if(after) after();
+  });
+}
+
+/* ---------- faculty ---------- */
+const WORDS = ['kerning','indigo','khadi','vector','bezier','canvas','serif','motif','weave','clay','sketch','swatch','pixel','grid','loom','ochre','madder','tracing','folio','studio','pattern','umber','glyph','batik'];
+function newFid(){ let id; do { id = 'BRF-'+(1000 + Math.floor(Math.random() * 9000)); } while(D.faculty.some(f => f.fid === id)); return id; }
+function newPw(){ const w = () => WORDS[Math.floor(Math.random() * WORDS.length)]; let a = w(), b = w(); while(b === a) b = w(); return a+'-'+b+'-'+(10 + Math.floor(Math.random() * 90)); }
+function vFaculty(){
+  const q = S.ff.q.trim().toLowerCase();
+  const list = D.faculty.filter(f => !q || [f.name, f.fid, f.email, instLabel(f), f.dept].join(' ').toLowerCase().indexOf(q) >= 0);
+  $('#view').innerHTML = ph('Faculty accounts', 'Faculty sign in with an ID and password you give them. They\'re never listed and can\'t edit their profile.', '<button class="btn primary" type="button" id="fNew">'+ico('plus', 16)+'New faculty account</button>')
+    + '<section class="card"><div class="tools"><label class="srch">'+ico('search', 15)+'<input class="input" id="fQ" type="search" placeholder="Name, ID or institute" aria-label="Search faculty" value="'+esc(S.ff.q)+'"></label><span class="cnt">'+list.length+' account'+(list.length === 1 ? '' : 's')+'</span></div>'
+    + '<div class="tbl" style="--cols:minmax(0,2fr) 100px minmax(0,1.3fr) minmax(0,1.3fr) 96px 110px 16px;--cols-t:minmax(0,2fr) 100px minmax(0,1.3fr) 96px 16px;--cols-m:minmax(0,1fr) auto"><div class="tr th"><span>Name</span><span>Faculty ID</span><span>Institute</span><span class="ht">Title</span><span>Status</span><span class="ht">Last sign-in</span><span></span></div>'
+    + (list.length ? list.map(f => '<button class="tr" type="button" data-of="'+f.id+'"><span class="who">'+ini(f.name, 'fac')+'<span><b>'+esc(f.name)+'</b><small>'+esc(f.email || 'No email')+'</small><small class="mo"><code>'+esc(f.fid)+'</code> · '+esc(instLabel(f))+'</small></span></span><span class="hm"><code>'+esc(f.fid)+'</code></span><span class="hm ell">'+esc(instLabel(f))+'</span><span class="hm ht ell sub">'+esc(f.title)+'</span><span>'+(f.status === 'active' ? '<span class="pill pos dot">Active</span>' : '<span class="pill neg dot">Disabled</span>')+'</span><span class="hm ht sub">'+rel(f.last)+'</span><span class="chev hm">'+ico('right', 14)+'</span></button>').join('')
+      : '<div class="empty">'+ico('key', 20)+'<span>No faculty accounts yet.</span></div>')+'</div></section>'
+    + '<div class="callout">'+ico('lock', 15)+'<span>Passwords are stored encrypted, so nobody can see them, including you. You see a password once, when you create an account or reset its password. Faculty can\'t change it themselves.</span></div>';
+  $('#fNew').addEventListener('click', () => openFaculty(null));
+  $('#fQ').addEventListener('input', e => { S.ff.q = e.target.value; const pos = e.target.selectionStart; vFaculty(); const i = $('#fQ'); i.focus(); i.setSelectionRange(pos, pos); });
+  $$('[data-of]').forEach(b => b.addEventListener('click', () => openFaculty(b.dataset.of)));
+}
+function openFaculty(id){
+  const f = id ? D.faculty.find(x => x.id === id) : null, isNew = !f, x = f || {fid:newFid(), name:'', title:'', dept:'', inst:'nid', campus:'Ahmedabad', email:'', status:'active'};
+  const body = (isNew ? '<div class="callout">'+ico('info', 15)+'<span>You\'ll get the ID and a password to send them once the account is created. Their profile won\'t appear in the directory.</span></div>'
+      : '<div class="sec"><div class="sum">'+ini(x.name, 'lg fac')+'<div style="min-width:0"><h3>'+esc(x.name)+'</h3><div class="pills"><span class="pill fac">Faculty</span>'+(x.status === 'active' ? '<span class="pill pos dot">Active</span>' : '<span class="pill neg dot">Disabled</span>')+'<span class="pill">'+ico('eyeoff', 12)+'Not in the directory</span></div></div></div>'
+        + '<div class="kv"><div><small>Created</small><b>'+fmtD(x.made)+' by '+esc(x.by)+'</b></div><div><small>Last sign-in</small><b>'+rel(x.last)+'</b></div><div><small>Password set</small><b>'+fmtD(x.pwAt)+'</b></div></div></div>')
+    + '<div class="sec"><h4>Profile</h4><div class="fld"><label class="label" for="f-name">Full name</label><input class="input" id="f-name" value="'+esc(x.name)+'" placeholder="e.g. Anjali Mehra"></div>'
+    + '<div class="grid2"><div class="fld"><label class="label" for="f-title">Title</label><input class="input" id="f-title" value="'+esc(x.title)+'" placeholder="Associate Professor"></div><div class="fld"><label class="label" for="f-dept">Department</label><input class="input" id="f-dept" value="'+esc(x.dept)+'" placeholder="Communication Design"></div></div>'
+    + '<div class="fld"><label class="label" for="f-inst">Institute</label><select class="input" id="f-inst">'+instOptions(x.inst+(x.campus ? '|'+x.campus : ''))+'</select></div>'
+    + '<div class="fld"><label class="label" for="f-email">Email</label><input class="input" id="f-email" type="email" value="'+esc(x.email)+'" placeholder="name@nid.edu"><span class="help">Where you send their ID and password. It isn\'t used to sign in.</span></div></div>'
+    + '<div class="sec"><h4>Sign-in</h4><div class="fld"><span class="label">Faculty ID</span><div style="display:flex;align-items:center;gap:10px"><code style="font-size:1rem" id="f-id">'+esc(x.fid)+'</code>'+(isNew ? '<button class="btn ghost sm" type="button" id="f-regen">'+ico('refresh', 14)+'Another ID</button>' : '<button class="btn ghost sm" type="button" id="f-copyid">'+ico('copy', 14)+'Copy</button>')+'</div><span class="help">IDs are unique and can\'t be reused, even after an account is deleted.</span></div>'
+    + (isNew ? '' : '<div class="fld"><span class="label">Password</span><div style="display:flex;align-items:center;gap:10px"><span>••••••••••</span><button class="btn secondary sm" type="button" id="f-reset">'+ico('refresh', 14)+'Reset password</button></div><span class="help">Resetting signs them out everywhere. You\'ll see the new password once.</span></div>'
+      + '<label class="tgl"><span><b>Account active</b><span class="help">Turn off to stop them signing in without deleting the account.</span></span><input type="checkbox" id="f-active"'+(x.status === 'active' ? ' checked' : '')+'></label>')+'</div>'
+    + (isNew ? '' : '<div class="sec dz"><h4>Delete account</h4><p class="help">They can\'t sign in any more, and their profile is erased. The ID stays retired.</p><button class="btn secondary neg" type="button" id="f-del" style="justify-self:start">'+ico('trash', 15)+'Delete account</button></div>');
+  const d = drawer(isNew ? 'New faculty account' : x.name, body, '<p class="err" id="f-err" role="alert"></p><button class="btn ghost" type="button" data-dwclose>Cancel</button><button class="btn primary" type="button" id="f-save">'+(isNew ? 'Create account' : 'Save changes')+'</button>');
+  if($('#f-regen', d)) $('#f-regen', d).addEventListener('click', () => { x.fid = newFid(); $('#f-id', d).textContent = x.fid; });
+  if($('#f-copyid', d)) $('#f-copyid', d).addEventListener('click', () => copy(x.fid, 'Faculty ID'));
+  if($('#f-reset', d)) $('#f-reset', d).addEventListener('click', () => confirmBox({t:'Reset '+esc(x.name.split(' ')[0])+'\'s password?', sub:'Their current password stops working right away, and they\'re signed out everywhere.', ok:'Reset password'}, () => {
+    const pw = newPw(); f.pwAt = new Date().toISOString(); log('admin', 'Reset a faculty password', f.name, f.fid); save(); closeDrawer(); vFaculty(); credModal(f, pw, false);
+  }));
+  if($('#f-del', d)) $('#f-del', d).addEventListener('click', () => confirmBox({t:'Delete '+esc(x.name)+'\'s account?', sub:'They can\'t sign in any more. This can\'t be undone.', ok:'Delete account', danger:true}, () => {
+    D.faculty = D.faculty.filter(y => y !== f); log('admin', 'Deleted a faculty account', f.name, f.fid); save(); closeDrawer(); vFaculty(); toast(f.fid+' is retired.', {t:'Faculty account deleted', k:'info', i:'trash'});
+  }));
+  $('#f-save', d).addEventListener('click', () => {
+    const err = $('#f-err', d); err.textContent = ''; $$('.input', d).forEach(i => i.removeAttribute('aria-invalid'));
+    const bad = (sel, msg) => { const i = $(sel, d); i.setAttribute('aria-invalid', 'true'); i.focus(); err.textContent = msg; };
+    const name = $('#f-name', d).value.trim(), email = $('#f-email', d).value.trim().toLowerCase(), inst = splitInst($('#f-inst', d).value);
+    if(!name) return bad('#f-name', 'Add their name.');
+    if(email && !validEmail(email)) return bad('#f-email', 'Enter a valid email, or leave it empty.');
+    if(email && (D.faculty.some(y => y !== f && y.email === email) || D.members.some(m => googleOf(m) === email || m.email === email))) return bad('#f-email', 'This email is already on another account.');
+    const v = {name, title:$('#f-title', d).value.trim() || 'Faculty', dept:$('#f-dept', d).value.trim() || (IB[inst.inst].br[0] || ''), inst:inst.inst, campus:inst.campus, email};
+    if(isNew){
+      const nf = Object.assign({id:'f'+Date.now().toString(36), fid:x.fid, status:'active', made:new Date().toISOString(), by:ME().name, last:null, pwAt:new Date().toISOString()}, v);
+      const pw = newPw(); D.faculty.unshift(nf); log('admin', 'Created a faculty account', nf.name, nf.fid); save(); closeDrawer(); vFaculty(); renderSide(); credModal(nf, pw, true); return;
+    }
+    const active = $('#f-active', d).checked, wasActive = f.status === 'active';
+    Object.assign(f, v, {status:active ? 'active' : 'disabled'});
+    log('admin', active === wasActive ? 'Edited a faculty profile' : active ? 'Turned a faculty account back on' : 'Turned off a faculty account', f.name, f.fid);
+    save(); closeDrawer(); vFaculty(); toast(f.name+'\'s account is up to date.', {t:'Saved'});
+  });
+}
+function fill(t, o){ return t.replace(/\{(\w+)\}/g, (m, k) => o[k] != null ? o[k] : m); }
+function credModal(f, pw, created){
+  const txt = k => cur('emails', k);
+  const mail = fill(txt('fac_b'), {name:f.name.split(' ')[0], id:f.fid, password:pw});
+  const m = modal(mdHead(created ? 'Account created' : 'New password set', 'Send these to '+esc(f.name)+'. The password won\'t be shown again.')
+    + '<div class="cred"><div class="cred-r"><div><small>Faculty ID</small><code>'+esc(f.fid)+'</code></div><button class="btn ghost sm" type="button" data-cp="id">'+ico('copy', 14)+'Copy</button></div>'
+    + '<div class="cred-r"><div><small>Password</small><code>'+esc(pw)+'</code></div><button class="btn ghost sm" type="button" data-cp="pw">'+ico('copy', 14)+'Copy</button></div></div>'
+    + '<div class="callout warn">'+ico('alert', 15)+'<span>Send the password privately, for example in a direct email to '+esc(f.email || 'them')+'. Don\'t post it in a group.</span></div>'
+    + '<div class="md-f"><button class="btn secondary" type="button" data-cp="mail">'+ico('mail', 15)+'Copy welcome email</button><button class="btn primary" type="button" data-mclose>Done</button></div>', 'Faculty credentials');
+  m.addEventListener('click', e => { const b = e.target.closest('[data-cp]'); if(!b) return; const k = b.dataset.cp;
+    if(k === 'id') copy(f.fid, 'Faculty ID'); else if(k === 'pw') copy(pw, 'Password'); else copy('Subject: '+txt('fac_s')+'\n\n'+mail, 'Welcome email'); });
+}
+
+/* ---------- verification ---------- */
+function vVerify(){
+  const tabs = [['pending','Waiting'],['approved','Approved'],['rejected','Rejected']], need = D.settings.approvals;
+  const list = D.queue.filter(q => q.status === S.qf).sort((a, b) => S.qf === 'pending' ? a.at.localeCompare(b.at) : (b.done || '').localeCompare(a.done || ''));
+  const E = can('verify');
+  $('#view').innerHTML = ph('Verification', 'Certificates waiting for a decision. You can approve or reject any of them yourself.')
+    + '<div class="seg" role="group" aria-label="Show">'+tabs.map(([k, l]) => '<button type="button" data-qf="'+k+'" aria-pressed="'+(S.qf === k)+'">'+l+' <span class="n">'+D.queue.filter(q => q.status === k).length+'</span></button>').join('')+'</div>'
+    + (list.length ? '<div class="qgrid">'+list.map(q => {
+      const a = q.approvals.length;
+      return '<article class="card qc"><div class="qc-h">'+ini(q.name, q.kind === 'student' ? 'stu' : 'alum')+'<div><b>'+esc(q.name)+'</b><span class="sub">'+esc(instLabel(q))+' · '+esc(q.branch)+' · '+q.year+'</span></div>'+kindPill(q.kind)+'</div>'
+        + '<div class="file">'+ico('doc', 15)+'<span class="ell">'+esc(q.file)+'</span><button class="btn ghost sm" type="button" data-qv="'+q.id+'">'+ico('eye', 14)+'View</button></div>'
+        + '<div class="qc-top"><span class="appr"><span class="pips" aria-hidden="true">'+Array.from({length:need}, (_, i) => '<i class="'+(i < a ? 'on' : '')+'"></i>').join('')+'</span>'+a+' of '+need+' approved</span><span class="qc-by">'+(q.status === 'pending' ? 'Sent '+rel(q.at).toLowerCase() : (q.status === 'approved' ? 'Approved ' : 'Rejected ')+rel(q.done).toLowerCase())+'</span></div>'
+        + (q.asked ? '<p class="res">'+ico('mail', 14)+'<span>Asked for a clearer file '+rel(q.asked).toLowerCase()+'.</span></p>' : '')
+        + (q.status === 'rejected' ? '<p class="quote">'+esc(q.why)+'</p>' : '')
+        + (q.status === 'pending' ? '<div class="qc-a"><button class="btn primary sm" type="button" data-qa="'+q.id+'"'+lock('verify')+'>'+ico('check', 14)+'Approve</button><button class="btn secondary sm neg" type="button" data-qr="'+q.id+'"'+lock('verify')+'>'+ico('x', 14)+'Reject</button><button class="btn ghost sm wide" type="button" data-qn="'+q.id+'"'+lock('verify')+'>'+ico('mail', 14)+'Ask for a clearer file</button></div>' : '')
+        + '</article>'; }).join('')+'</div>'
+      : '<section class="card"><div class="empty">'+ico('check', 20)+'<span>'+(S.qf === 'pending' ? 'No one is waiting. New certificates show up here.' : 'Nothing here yet.')+'</span></div></section>');
+  $$('[data-qf]').forEach(b => b.addEventListener('click', () => { S.qf = b.dataset.qf; vVerify(); }));
+  $$('[data-qv]').forEach(b => b.addEventListener('click', () => { const q = D.queue.find(x => x.id === b.dataset.qv);
+    modal(mdHead(esc(q.file), 'Volunteers see only these four lines. Everything else on the file is hidden.')+'<div class="doc"><h4>'+(q.kind === 'student' ? 'Bonafide certificate' : 'Degree certificate')+'</h4><i style="width:70%;margin:0 auto"></i>'
+      + [['Name', q.name], ['Institute', instFull(q)], ['Branch', q.branch], ['Year', q.year]].map(([k, v]) => '<div class="r"><b>'+k+'</b><span>'+esc(v)+'</span></div>').join('')+'<i style="width:90%"></i><i style="width:60%"></i><i style="width:35%;margin-left:auto"></i></div><p class="proto">Prototype: there\'s no real file.</p>', 'Certificate'); }));
+  $$('[data-qa]').forEach(b => b.addEventListener('click', () => { const q = D.queue.find(x => x.id === b.dataset.qa);
+    confirmBox({t:'Approve '+esc(q.name)+'?', sub:q.approvals.length >= need ? '' : 'You\'re approving without waiting for '+(need - q.approvals.length)+' more volunteer'+(need - q.approvals.length === 1 ? '' : 's')+'. They\'ll be listed straight away.', ok:'Approve and list'}, () => {
+      const now = new Date().toISOString();
+      Object.assign(q, {status:'approved', done:now, dby:ME().name});
+      D.members.push({id:'m'+Date.now().toString(36), kind:q.kind, name:q.name, inst:q.inst, campus:q.campus, branch:q.branch, year:q.year, v:'documents', email:q.email, email2:'', cemail:'', links:[], open:[OPEN_FOR[q.kind][0]], vol:false, volPhone:'', exp:q.kind === 'alum' ? [{t:'job', role:'Designer', org:'', from:q.year, to:0}] : [], status:'active', listed:true, limit:null, joined:now, last:now});
+      log('verify', 'Approved verification', q.name, q.approvals.length+' of '+need+' volunteer approvals');
+      save(); vVerify(); renderSide(); toast(q.name+' is listed now. We\'ll email them.', {t:'Approved'});
+    }); }));
+  $$('[data-qr]').forEach(b => b.addEventListener('click', () => { const q = D.queue.find(x => x.id === b.dataset.qr);
+    confirmBox({t:'Reject '+esc(q.name)+'\'s request?', sub:'We\'ll email them the reason and the file is deleted. They can try again.', ok:'Reject', danger:true,
+      body:'<div class="fld"><label class="label" for="rj">Reason</label><select class="input" id="rj"><option>The name on the certificate doesn\'t match.</option><option>The institute, branch or year doesn\'t match.</option><option>The file is unreadable.</option><option>It isn\'t a valid certificate.</option></select></div><div class="fld"><label class="label" for="rjn">Note to them <span class="muted" style="font-weight:400">(optional)</span></label><textarea class="input" id="rjn" rows="2"></textarea></div>'}, md => {
+      const why = $('#rj', md).value + ($('#rjn', md).value.trim() ? ' '+$('#rjn', md).value.trim() : '');
+      Object.assign(q, {status:'rejected', done:new Date().toISOString(), dby:ME().name, why}); log('verify', 'Rejected verification', q.name, why); save(); vVerify(); renderSide(); toast('We\'ll email '+q.name.split(' ')[0]+' the reason.', {t:'Rejected', k:'info'});
+    }); }));
+  $$('[data-qn]').forEach(b => b.addEventListener('click', () => { const q = D.queue.find(x => x.id === b.dataset.qn);
+    confirmBox({t:'Ask for a new file?', sub:'We\'ll email '+esc(q.email)+'. The request stays in the queue.', ok:'Send email', body:'<div class="fld"><label class="label" for="nf">Message</label><textarea class="input" id="nf" rows="3">The file you sent is hard to read. Could you upload a clearer scan or photo?</textarea></div>'}, () => {
+      q.asked = new Date().toISOString(); log('verify', 'Asked for a new file', q.name, ''); save(); vVerify(); toast('Sent to '+q.email+'.', {t:'Email sent', k:'info', i:'mail'});
+    }); }));
+}
+
+/* ---------- reports ---------- */
+const RSEV = r => /Harassment/.test(r) ? 'neg' : /Spam/.test(r) ? 'warn' : '';
+function vReports(){
+  const tabs = [['open','Open'],['resolved','Resolved'],['dismissed','Dismissed']];
+  const list = D.reports.filter(r => r.status === S.rf).sort((a, b) => b.at.localeCompare(a.at));
+  $('#view').innerHTML = ph('Reports', 'Listings members have reported. Reporters stay anonymous. Aim to close each within 3 days.')
+    + '<div class="seg" role="group" aria-label="Show">'+tabs.map(([k, l]) => '<button type="button" data-rf="'+k+'" aria-pressed="'+(S.rf === k)+'">'+l+' <span class="n">'+D.reports.filter(r => r.status === k).length+'</span></button>').join('')+'</div>'
+    + (list.length ? '<div class="qgrid">'+list.map(r => { const m = memberById(r.mid);
+      return '<article class="card qc"><div class="qc-top"><span class="pill '+RSEV(r.reason)+'">'+esc(r.reason)+'</span><span class="qc-by">'+rel(r.at)+'</span></div>'
+        + '<div class="qc-h">'+ini(r.mname, m ? (m.kind === 'student' ? 'stu' : 'alum') : '')+'<div>'+(m ? '<button class="lnkb" type="button" data-rm="'+m.id+'" style="font-weight:600">'+esc(m.name)+'</button>' : '<b>'+esc(r.mname)+'</b>')+'<span class="sub">'+(m ? esc(instLabel(m)) : 'Profile deleted')+' · reported by '+esc(r.from)+'</span></div>'+(m ? stPill(m) : '')+'</div>'
+        + (r.note ? '<p class="quote">'+esc(r.note)+'</p>' : '<p class="help">No details given.</p>')
+        + (r.status !== 'open' ? '<p class="res">'+ico('check', 14)+'<span><b style="font-weight:500">'+esc(r.res)+'</b> '+esc(r.rby)+', '+rel(r.rat).toLowerCase()+'.</span></p>'
+          : '<div class="qc-a">'+(m ? '<button class="btn secondary sm" type="button" data-ra="hide" data-r="'+r.id+'"'+lock('suspend')+(m.listed ? '' : ' disabled')+'>'+ico('eyeoff', 14)+'Hide listing</button><button class="btn secondary sm" type="button" data-ra="suspend" data-r="'+r.id+'"'+lock('suspend')+(m.status === 'suspended' ? ' disabled' : '')+'>'+ico('ban', 14)+'Suspend</button>' : '')
+            + '<button class="btn secondary sm" type="button" data-ra="resolve" data-r="'+r.id+'"'+lock('reports')+'>'+ico('check', 14)+'Mark resolved</button><button class="btn ghost sm" type="button" data-ra="dismiss" data-r="'+r.id+'"'+lock('reports')+'>Dismiss</button>'
+            + (m ? '<button class="btn ghost sm neg wide" type="button" data-ra="delete" data-r="'+r.id+'"'+lock('delete')+'>'+ico('trash', 14)+'Delete profile</button>' : '')+'</div>')
+        + '</article>'; }).join('')+'</div>'
+      : '<section class="card"><div class="empty">'+ico('check', 20)+'<span>'+(S.rf === 'open' ? 'No open reports.' : 'Nothing here yet.')+'</span></div></section>');
+  $$('[data-rf]').forEach(b => b.addEventListener('click', () => { S.rf = b.dataset.rf; vReports(); }));
+  $$('[data-rm]').forEach(b => b.addEventListener('click', () => openMember(b.dataset.rm)));
+  $$('[data-ra]').forEach(b => b.addEventListener('click', () => {
+    const r = D.reports.find(x => x.id === b.dataset.r), m = memberById(r.mid), a = b.dataset.ra;
+    const close = (res, note) => { Object.assign(r, {status:a === 'dismiss' ? 'dismissed' : 'resolved', res:res+(note ? ' '+note : ''), rby:ME().name, rat:new Date().toISOString()}); log('report', a === 'dismiss' ? 'Dismissed a report' : 'Resolved a report', r.mname, r.reason+' · '+res); save(); vReports(); renderSide(); };
+    if(a === 'delete'){ deleteMember(m, () => { S.rf = 'resolved'; vReports(); }); return; }
+    const C = {hide:['Hide '+esc(m.name)+'\'s listing?', 'They can still sign in, but nobody finds them in the directory.', 'Hide listing', 'Hid the listing.'],
+      suspend:['Suspend '+esc(m ? m.name : '')+'?', 'They can\'t sign in and aren\'t listed until you reinstate them.', 'Suspend', 'Suspended the account.'],
+      resolve:['Mark this report resolved?', 'Say what you did, for the record.', 'Mark resolved', 'Handled it.'],
+      dismiss:['Dismiss this report?', 'Use this when nothing was wrong. The reporter isn\'t told.', 'Dismiss', 'Nothing wrong found.']}[a];
+    confirmBox({t:C[0], sub:C[1], ok:C[2], danger:a === 'suspend', body:'<div class="fld"><label class="label" for="rn">Note <span class="muted" style="font-weight:400">(for the team)</span></label><textarea class="input" id="rn" rows="2" placeholder="'+(a === 'resolve' ? 'e.g. Talked to them and they removed the link.' : 'Optional')+'"></textarea></div>'}, md => {
+      const note = $('#rn', md).value.trim();
+      if(a === 'hide'){ m.listed = false; log('admin', 'Hid a listing', m.name, 'Report: '+r.reason); }
+      if(a === 'suspend'){ m.status = 'suspended'; log('admin', 'Suspended a member', m.name, 'Report: '+r.reason); }
+      close(C[3], note); toast(a === 'dismiss' ? 'The report is closed.' : C[3], {t:a === 'dismiss' ? 'Dismissed' : 'Report resolved', k:a === 'dismiss' ? 'info' : 'pos'});
+    });
+  }));
+}
+
+/* ---------- activity log ---------- */
+const LT = {auth:'Sign-ins', signup:'Sign-ups', profile:'Profiles', contact:'Contacts', verify:'Verification', report:'Reports', admin:'Team actions'};
+function vLogs(){
+  const f = S.lf;
+  $('#view').innerHTML = ph('Activity log', 'Every sign-in, change and team action. Entries can\'t be edited or deleted.', can('export') ? '<button class="btn secondary" type="button" id="lExp">'+ico('download', 16)+'Export CSV</button>' : '')
+    + '<section class="card"><div class="tools"><label class="srch">'+ico('search', 15)+'<input class="input" id="lQ" type="search" placeholder="Person, action or detail" aria-label="Search the log" value="'+esc(f.q)+'"></label>'
+    + '<select class="input" id="lR" aria-label="Time range">'+[['1','Last 24 hours'],['7','Last 7 days'],['30','Last 30 days'],['all','All time']].map(([k, l]) => '<option value="'+k+'"'+(f.r === k ? ' selected' : '')+'>'+l+'</option>').join('')+'</select><span class="cnt" id="lN"></span>'
+    + '<div class="chips" style="width:100%" role="group" aria-label="Type"><button class="chip" type="button" data-lt="" aria-pressed="'+(!f.t)+'">All</button>'+Object.keys(LT).map(k => '<button class="chip" type="button" data-lt="'+k+'" aria-pressed="'+(f.t === k)+'"><span class="lt '+k+'"><i></i></span>'+LT[k]+'</button>').join('')+'</div></div>'
+    + '<div id="lList"></div></section>';
+  S.lmax = 60; drawLogs();
+  $('#lQ').addEventListener('input', e => { f.q = e.target.value; S.lmax = 60; drawLogs(); });
+  $('#lR').addEventListener('change', e => { f.r = e.target.value; S.lmax = 60; drawLogs(); });
+  $$('[data-lt]').forEach(b => b.addEventListener('click', () => { f.t = b.dataset.lt; $$('[data-lt]').forEach(x => x.setAttribute('aria-pressed', x === b)); S.lmax = 60; drawLogs(); }));
+  if($('#lExp')) $('#lExp').addEventListener('click', () => { const l = logList(); download('bridges-activity.csv', csv([['Time','Who','Role','Type','Action','About','Details','Device','IP','Event ID']].concat(l.map(x => [x.at, x.who, x.role, LT[x.type], x.act, x.target, x.detail, x.dev, x.ip, x.id])))); log('admin', 'Exported the activity log', '', l.length+' rows'); });
+}
+function logList(){
+  const f = S.lf, q = f.q.trim().toLowerCase(), lim = f.r === 'all' ? Infinity : +f.r * DAY, now = Date.now();
+  return D.logs.filter(l => (!f.t || l.type === f.t) && now - new Date(l.at) <= lim && (!q || [l.who, l.act, l.target, l.detail, l.role].join(' ').toLowerCase().indexOf(q) >= 0));
+}
+function drawLogs(){
+  const l = logList(), shown = l.slice(0, S.lmax);
+  $('#lN').textContent = l.length+' event'+(l.length === 1 ? '' : 's');
+  const cols = '--cols:110px minmax(0,1.2fr) minmax(0,1.5fr) minmax(0,1.1fr) minmax(0,1.4fr);--cols-t:96px minmax(0,1.2fr) minmax(0,1.5fr) minmax(0,1fr);--cols-m:minmax(0,1fr)';
+  $('#lList').innerHTML = '<div class="tr th" style="'+cols+'"><span>When</span><span>Who</span><span>Action</span><span>About</span><span class="ht">Details</span></div>'
+    + (shown.length ? shown.map(x => '<details class="lg"><summary class="tr" style="'+cols+'"><span class="sub hm" title="'+esc(fmtDT(x.at))+'">'+rel(x.at)+'</span><span class="who">'+ini(x.who, roleCls(x.role))+'<span><b>'+esc(x.who)+'</b><small class="ro">'+esc(x.role)+'</small><small class="mo">'+esc(x.act+(x.target ? ': '+x.target : ''))+' · '+rel(x.at)+'</small></span></span>'
+      + '<span class="lt hm '+x.type+(x.sev ? ' '+x.sev : '')+'"><i></i>'+esc(x.act)+'</span><span class="hm ell">'+esc(x.target || '—')+'</span><span class="hm ht ell sub">'+esc(x.detail || '')+'</span></summary>'
+      + '<div class="lg-d"><div><small>Time</small>'+esc(fmtDT(x.at))+'</div><div><small>Device</small>'+esc(x.dev)+'</div><div><small>IP address</small>'+esc(x.ip)+'</div><div><small>Event ID</small><code>'+esc(x.id)+'</code></div>'+(x.target ? '<div><small>About</small>'+esc(x.target)+'</div>' : '')+(x.detail ? '<div style="grid-column:span 3"><small>Details</small>'+esc(x.detail)+'</div>' : '')+'</div></details>').join('')
+      : '<div class="empty">'+ico('activity', 20)+'<span>No activity matches.</span></div>')
+    + (l.length > shown.length ? '<div class="more"><button class="btn secondary sm" type="button" id="lMore">Show '+Math.min(60, l.length - shown.length)+' more</button></div>' : '');
+  if($('#lMore')) $('#lMore').addEventListener('click', () => { S.lmax += 60; drawLogs(); });
+}
+
+/* ---------- page text ---------- */
+const def = (pg, k) => PG[pg].f.find(x => x[0] === k)[2];
+const pub = (pg, k) => D.content[pg] && D.content[pg][k] != null ? D.content[pg][k] : def(pg, k);
+const cur = (pg, k) => S.draft[pg] && S.draft[pg][k] != null ? S.draft[pg][k] : pub(pg, k);
+const dirtyN = pg => S.draft[pg] ? Object.keys(S.draft[pg]).filter(k => S.draft[pg][k] !== pub(pg, k)).length : 0;
+function previewHtml(p){
+  const v = k => esc(cur(p.id, k));
+  if(p.pv === 'hero') return '<div class="pv hero"><h4>'+v('h')+'</h4><p>'+v('lede')+'</p><div class="pb"><span>'+v('b1')+'</span><span class="s">'+v('b2')+'</span></div></div>';
+  if(p.pv === 'head') return '<div class="pv"><span class="eb">'+v('eb')+'</span><h4>'+v('h')+'</h4><p>'+v('lede')+'</p>'+(p.g ? '<span class="gbtn">'+GLOGO+'<span>'+v('b1')+'</span></span>' : '<div class="pb"><span>'+v('b1')+'</span></div>')+'</div>';
+  if(p.pv === 'footer') return '<div class="pv"><b style="font-size:1.0625rem;letter-spacing:-.02em">Bridges<span class="muted" style="font-weight:400">.directory</span></b><p>'+v('about')+'</p><p class="help">'+v('note')+'</p></div>';
+  if(p.pv === 'toast') return '<div class="pv" style="gap:10px">'+[['in_t','in','check'],['out_t','out','out'],['list_t','list','check']].map(([t, m, i]) => '<div class="tst"><span class="ini" style="width:28px;height:28px;background:var(--pos-bg);color:var(--pos-fg)">'+ico(i, 14)+'</span><div><b>'+v(t)+'</b><p>'+v(m)+'</p></div></div>').join('')+'</div>';
+  if(p.pv === 'email') return '<div class="pv"><div class="mail"><span class="sub">From Bridges.directory &lt;no-reply@bridges.directory&gt;</span><b>'+v('fac_s')+'</b><pre>'+v('fac_b')+'</pre></div><div class="mail"><span class="sub">Other subject lines</span><b>'+v('code_s')+'</b><b>'+v('inv_s')+'</b><b>'+v('ref_s')+'</b></div></div>';
+  return '<div class="pv"><span class="eb">'+esc(p.eb || 'Legal')+'</span><h4>'+v('t')+'</h4><p>'+v('lede')+'</p><div class="lgl">'+cur(p.id, 'body')+'</div></div>';
+}
+function vContent(){
+  if(!PG[S.page]) S.page = 'home';
+  const p = PG[S.page], n = dirtyN(p.id), E = can('content'), grps = Array.from(new Set(PAGES.map(x => x.grp)));
+  const hist = D.history.filter(h => h.page === p.id).slice(0, 5);
+  $('#view').innerHTML = ph('Page text', 'Edit the words on any page, notification or email. Changes stay a draft until you publish. Words in {braces} fill in automatically.')
+    + '<div class="ce"><nav class="ce-l" aria-label="Pages">'+grps.map(g => '<div class="nav-h">'+g+'</div>'+PAGES.filter(x => x.grp === g).map(x => '<button type="button" data-pg="'+x.id+'" aria-current="'+(x.id === p.id)+'">'+esc(x.n)+(dirtyN(x.id) ? '<span class="dot" aria-label="Unpublished changes"></span>' : '')+'</button>').join('')).join('')+'</nav>'
+    + '<div class="ce-f"><select class="input ce-sel" id="pgSel" aria-label="Page">'+grps.map(g => '<optgroup label="'+g+'">'+PAGES.filter(x => x.grp === g).map(x => '<option value="'+x.id+'"'+(x.id === p.id ? ' selected' : '')+'>'+esc(x.n)+(dirtyN(x.id) ? ' (edited)' : '')+'</option>').join('')+'</optgroup>').join('')+'</select>'
+    + '<section class="card"><div class="card-h"><div><h3>'+esc(p.n)+'</h3>'+(p.path ? '<a class="sub" href="'+SITE+p.path+'" target="_blank" rel="noopener noreferrer">Shows on '+esc(p.path)+' '+ico('ext', 12)+'</a>' : '<span class="sub">Sent or shown by the site</span>')+'</div>'
+    + '<div style="display:flex;gap:8px;flex-wrap:wrap">'+(n ? '<button class="btn ghost sm" type="button" id="cDis">Discard</button>' : '')+'<button class="btn primary sm" type="button" id="cPub"'+(n && E ? '' : ' disabled')+'>'+(n ? 'Publish '+n+' change'+(n === 1 ? '' : 's') : 'No changes')+'</button></div></div>'
+    + '<div class="card-b"><div id="cPv">'+previewHtml(p)+'</div>'
+    + (E ? '' : '<div class="callout">'+ico('lock', 15)+'<span>Your role can read page text but can\'t change it.</span></div>')
+    + p.f.map(([k, l, dv, t]) => { const val = cur(p.id, k), ch = val !== pub(p.id, k), cust = val !== dv;
+      return '<div class="fld'+(ch ? ' chg' : '')+'" data-fk="'+k+'"><div class="fld-h"><label class="label" for="c-'+k+'">'+esc(l)+'</label>'+(ch ? '<span class="pill warn">Draft</span>' : cust ? '<span class="pill">Edited</span>' : '')+(cust && E ? '<button class="lnkb" type="button" data-cdef="'+k+'">Reset to default</button>' : '')+'</div>'
+        + (t ? '<textarea class="input'+(t === 'h' ? ' code-ta' : '')+'" id="c-'+k+'" rows="'+(t === 'h' ? 14 : Math.min(8, Math.max(2, Math.ceil(val.length / 80) + (val.split('\n').length - 1))))+'" data-ck="'+k+'"'+(E ? '' : ' disabled')+'>'+esc(val)+'</textarea>' : '<input class="input" id="c-'+k+'" data-ck="'+k+'" value="'+esc(val)+'"'+(E ? '' : ' disabled')+'>')
+        + '<span class="cc">'+val.length+' characters'+(t === 'h' ? ' · HTML: h3, p, ul, li, a, b' : '')+'</span></div>'; }).join('')
+    + '</div></section>'
+    + '<section class="card"><div class="card-h"><h3>Published changes</h3></div><div class="card-b">'+(hist.length ? '<div class="hist">'+hist.map(h => '<div><span>'+h.n+' field'+(h.n === 1 ? '' : 's')+' by '+esc(h.by)+'</span><span class="sub">'+fmtDT(h.at)+'</span></div>').join('')+'</div>' : '<p class="help">No changes published for this page yet. It shows the default text.</p>')+'</div></section></div></div>';
+  $$('[data-pg]').forEach(b => b.addEventListener('click', () => { S.page = b.dataset.pg; vContent(); window.scrollTo(0, 0); }));
+  $('#pgSel').addEventListener('change', e => { S.page = e.target.value; vContent(); });
+  $$('[data-ck]').forEach(i => i.addEventListener('input', () => {
+    const k = i.dataset.ck; S.draft[p.id] = S.draft[p.id] || {}; S.draft[p.id][k] = i.value;
+    $('#cPv').innerHTML = previewHtml(p); const fl = i.closest('.fld'), ch = i.value !== pub(p.id, k); fl.classList.toggle('chg', ch); $('.cc', fl).firstChild.textContent = i.value.length+' characters'+(i.classList.contains('code-ta') ? ' · HTML: h3, p, ul, li, a, b' : '');
+    const n2 = dirtyN(p.id), b = $('#cPub'); b.disabled = !n2 || !E; b.textContent = n2 ? 'Publish '+n2+' change'+(n2 === 1 ? '' : 's') : 'No changes';
+    if(!!n2 !== !!$('#cDis') || ch !== !!$('.pill.warn', fl)) { /* refresh chrome without losing focus */ const pos = i.selectionStart; vContent(); const j = $('#c-'+k); j.focus(); try { j.setSelectionRange(pos, pos); } catch(e){} }
+  }));
+  $$('[data-cdef]').forEach(b => b.addEventListener('click', () => { const k = b.dataset.cdef; S.draft[p.id] = S.draft[p.id] || {}; S.draft[p.id][k] = def(p.id, k); vContent(); }));
+  if($('#cDis')) $('#cDis').addEventListener('click', () => { S.draft[p.id] = {}; vContent(); toast('Back to the published text.', {t:'Draft discarded', k:'info', i:'undo'}); });
+  $('#cPub').addEventListener('click', () => {
+    const ks = Object.keys(S.draft[p.id] || {}).filter(k => S.draft[p.id][k] !== pub(p.id, k)); if(!ks.length) return;
+    confirmBox({t:'Publish '+ks.length+' change'+(ks.length === 1 ? '' : 's')+' to '+esc(p.n)+'?', sub:'Everyone sees the new text straight away.', ok:'Publish', body:'<div class="mini">'+ks.map(k => '<div><b style="font-weight:500">'+esc(p.f.find(x => x[0] === k)[1])+'</b><span>'+(S.draft[p.id][k] === def(p.id, k) ? 'Back to default' : 'Changed')+'</span></div>').join('')+'</div>'}, () => {
+      D.content[p.id] = D.content[p.id] || {}; ks.forEach(k => { if(S.draft[p.id][k] === def(p.id, k)) delete D.content[p.id][k]; else D.content[p.id][k] = S.draft[p.id][k]; });
+      D.history.unshift({at:new Date().toISOString(), by:ME().name, page:p.id, n:ks.length}); S.draft[p.id] = {};
+      log('admin', 'Published text changes', p.n, ks.map(k => p.f.find(x => x[0] === k)[1]).join(', ')); vContent(); toast(p.n+' has the new text.', {t:'Published'});
+    });
+  });
+}
+
+/* ---------- roles and permissions ---------- */
+function vRoles(){
+  const T = can('team');
+  const st = D.settings;
+  $('#view').innerHTML = ph('Roles and permissions', 'Who\'s on the team and what each role can do. "Preview the admin as" in the menu shows the admin through a role\'s eyes.', T ? '<button class="btn primary" type="button" id="tInv">'+ico('uplus', 16)+'Invite a teammate</button>' : '')
+    + '<section class="card"><div class="card-h"><h3>Team</h3><span class="sub">'+D.team.length+' people</span></div><div class="tbl" style="--cols:minmax(200px,2fr) 170px 120px 40px;--cols-m:minmax(0,1fr) auto"><div class="tr th"><span>Name</span><span>Role</span><span>Last active</span><span></span></div>'
+    + D.team.map(t => '<div class="tr"><span class="who">'+ini(t.name, 'team')+'<span><b>'+esc(t.name)+(t.you ? ' <span class="muted" style="font-weight:400">(you)</span>' : '')+'</b><small>'+esc(t.email)+'</small></span></span>'
+      + '<span>'+(t.role === 'Owner' || !T ? '<span class="pill'+(t.role === 'Owner' ? ' fac' : '')+'">'+t.role+'</span>' : '<select class="input" data-trole="'+t.id+'" aria-label="Role for '+esc(t.name)+'" style="height:34px">'+ROLES.slice(1).map(r => '<option'+(r === t.role ? ' selected' : '')+'>'+r+'</option>').join('')+'</select>')+'</span>'
+      + '<span class="sub hm">'+(t.last ? rel(t.last) : 'Invited')+'</span><span class="hm">'+(t.role !== 'Owner' && T ? '<button class="ib" type="button" data-trm="'+t.id+'" aria-label="Remove '+esc(t.name)+'">'+ico('trash', 15)+'</button>' : '')+'</span></div>').join('')+'</div></section>'
+    + '<section class="card"><div class="card-h"><h3>What each role can do</h3>'+(T ? '<span class="sub">Changes save straight away</span>' : '<span class="sub">Only the owner can change these</span>')+'</div><div class="mx"><table><thead><tr><th scope="col">Permission</th>'+ROLES.map(r => '<th scope="col">'+r+'<small>'+ROLE_DESC[r]+'</small></th>').join('')+'</tr></thead><tbody>'
+    + PERMS.map(([k, l]) => '<tr><td>'+l+'</td>'+ROLES.map(r => '<td><input type="checkbox" data-perm="'+r+'|'+k+'" aria-label="'+r+': '+l+'"'+(D.roles[r][k] ? ' checked' : '')+(r === 'Owner' || !T ? ' disabled' : '')+'></td>').join('')+'</tr>').join('')+'</tbody></table></div></section>'
+    + '<section class="card"><div class="card-h"><h3>What members can do</h3><span class="sub">Set by the site\'s rules</span></div><div class="card-b rules">'
+    + '<div>'+kindPill('student')+'<ul><li>Sign in with Google, verify with an institute email code or a certificate</li><li>Browse and open '+st.limit+' contacts a week</li><li>Volunteer to check certificates</li><li>Edit their own profile</li></ul></div>'
+    + '<div>'+kindPill('alum')+'<ul><li>Sign in with Google, verify with a certificate or a referral code</li><li>Browse and open '+st.limit+' contacts a week</li><li>Refer other alumni from their institute</li><li>Edit their own profile</li></ul></div>'
+    + '<div>'+kindPill('faculty')+'<ul><li>Sign in with an ID and password from the team</li><li>Browse and open '+st.limit+' contacts a week</li><li>Never listed in the directory</li><li>Can\'t edit their profile or password</li></ul></div></div></section>';
+  if($('#tInv')) $('#tInv').addEventListener('click', () => confirmBox({t:'Invite a teammate', sub:'They sign in to the admin with this Google account.', ok:'Send invite',
+    body:'<div class="fld"><label class="label" for="ti-n">Name</label><input class="input" id="ti-n"></div><div class="fld"><label class="label" for="ti-e">Google account</label><input class="input" id="ti-e" type="email" placeholder="name@gmail.com"></div><div class="fld"><label class="label" for="ti-r">Role</label><select class="input" id="ti-r">'+ROLES.slice(1).map(r => '<option'+(r === 'Moderator' ? ' selected' : '')+'>'+r+'</option>').join('')+'</select></div><p class="err" id="ti-err" role="alert"></p>'}, md => {
+    const n = $('#ti-n', md).value.trim(), e = $('#ti-e', md).value.trim().toLowerCase(), r = $('#ti-r', md).value, err = $('#ti-err', md);
+    if(!n){ err.textContent = 'Add their name.'; $('#ti-n', md).focus(); return false; }
+    if(!validEmail(e)){ err.textContent = 'Enter their Google account.'; $('#ti-e', md).focus(); return false; }
+    if(D.team.some(t => t.email === e)){ err.textContent = 'They\'re already on the team.'; return false; }
+    D.team.push({id:'t'+Date.now().toString(36), name:n, email:e, role:r, last:null}); log('admin', 'Invited a teammate', n, r); vRoles(); toast(n+' can sign in as '+r+' once they accept.', {t:'Invite sent', i:'mail'});
+  }));
+  $$('[data-trole]').forEach(s => s.addEventListener('change', () => { const t = D.team.find(x => x.id === s.dataset.trole), old = t.role; t.role = s.value; log('admin', 'Changed a role', t.name, old+' → '+t.role); toast(t.name+' is now '+(t.role === 'Admin' ? 'an ' : 'a ')+t.role+'.', {t:'Role changed'}); }));
+  $$('[data-trm]').forEach(b => b.addEventListener('click', () => { const t = D.team.find(x => x.id === b.dataset.trm);
+    confirmBox({t:'Remove '+esc(t.name)+' from the team?', sub:'They lose access to the admin straight away. Their past actions stay in the log.', ok:'Remove', danger:true}, () => { D.team = D.team.filter(x => x !== t); log('admin', 'Removed a teammate', t.name, t.role); vRoles(); toast(t.name+' no longer has admin access.', {t:'Removed', k:'info'}); }); }));
+  $$('[data-perm]').forEach(c => c.addEventListener('change', () => { const [r, k] = c.dataset.perm.split('|'); D.roles[r][k] = c.checked; const l = PERMS.find(x => x[0] === k)[1];
+    log('admin', 'Changed permissions', r, (c.checked ? 'Can now: ' : 'Can no longer: ')+l.toLowerCase()); renderSide(); toast(r+(c.checked ? 's can now ' : 's can no longer ')+l.charAt(0).toLowerCase()+l.slice(1)+'.', {t:'Permissions updated', i:'lock'}); }));
+}
+
+/* ---------- settings ---------- */
+function vSettings(){
+  const s = S.set = JSON.parse(JSON.stringify(D.settings)), E = can('settings');
+  const row = (t, p, ctl) => '<div class="set"><div><b>'+t+'</b><p class="help">'+p+'</p></div><div class="ctl">'+ctl+'</div></div>';
+  $('#view').innerHTML = ph('Settings', 'Rules that apply across Bridges.directory.')
+    + '<section class="card">'
+    + row('Contacts per week', 'How many contacts each member can open in a week. You can change it for one person from their profile.', '<input class="input" id="s-limit" type="number" min="1" max="30" value="'+s.limit+'" style="max-width:120px">')
+    + row('Volunteer approvals', 'How many volunteers must approve a certificate before someone is listed.', '<div class="seg" role="group" aria-label="Approvals needed">'+[1, 2, 3].map(n => '<button type="button" data-ap="'+n+'" aria-pressed="'+(s.approvals === n)+'">'+n+'</button>').join('')+'</div>')
+    + row('Institute emails for codes', 'Students with an address on these domains can verify with a 6-digit code. Turn one off to send that institute\'s students to certificate checks instead.', '<div class="doms">'+INST.map(i => '<label><span><b style="font-weight:500">'+esc(i.s)+'</b> <code>@'+esc(i.d)+'</code></span><span class="tgl" style="flex:none"><input type="checkbox" data-dom="'+i.id+'" aria-label="'+esc(i.s)+'"'+(s.domains[i.id] !== false ? ' checked' : '')+'></span></label>').join('')+'</div>')
+    + row('Sign-ups', 'Pause new sign-ups without affecting existing members.', '<label class="tgl"><span><b>Open for new members</b></span><input type="checkbox" id="s-su"'+(s.signups ? ' checked' : '')+'></label><textarea class="input" id="s-pm" rows="2" aria-label="Message while paused"'+(s.signups ? ' hidden' : '')+'>'+esc(s.pauseMsg)+'</textarea>')
+    + row('Site notice', 'A short message at the top of every page, for maintenance or news.', '<label class="tgl"><span><b>Show a notice</b></span><input type="checkbox" id="s-bn"'+(s.banner ? ' checked' : '')+'></label><input class="input" id="s-bm" placeholder="e.g. Bridges will be down for 10 minutes at 11 pm tonight." value="'+esc(s.bannerMsg)+'"'+(s.banner ? '' : ' hidden')+'>')
+    + row('Yearly contribution goal', 'Shown on the Contribute page and the home tile.', '<div style="display:flex;align-items:center;gap:8px"><span class="muted">₹</span><input class="input" id="s-goal" type="number" min="0" step="500" value="'+s.goal+'" style="max-width:160px"></div>')
+    + row('Demo data', 'Puts every member, account, report and log entry back the way the prototype started.', '<button class="btn secondary neg" type="button" id="s-reset" style="justify-self:start">'+ico('refresh', 15)+'Reset demo data</button>')
+    + '<div class="savebar"><span class="help" id="s-n">No unsaved changes</span><button class="btn primary" type="button" id="s-save" disabled>Save settings</button></div></section>';
+  if(!E) $$('#view input,#view textarea,#view [data-ap],#s-save,#s-reset').forEach(i => i.disabled = true);
+  const label = {limit:'Contacts per week', approvals:'Volunteer approvals', domains:'Institute emails', signups:'Sign-ups', pauseMsg:'Pause message', banner:'Site notice', bannerMsg:'Notice text', goal:'Contribution goal'};
+  const diff = () => Object.keys(label).filter(k => JSON.stringify(s[k]) !== JSON.stringify(D.settings[k]));
+  const upd = () => { const n = diff().length; $('#s-n').textContent = n ? n+' unsaved change'+(n === 1 ? '' : 's') : 'No unsaved changes'; $('#s-save').disabled = !n || !E; };
+  $('#s-limit').addEventListener('input', e => { s.limit = Math.max(1, Math.min(30, +e.target.value || 1)); upd(); });
+  $$('[data-ap]').forEach(b => b.addEventListener('click', () => { s.approvals = +b.dataset.ap; $$('[data-ap]').forEach(x => x.setAttribute('aria-pressed', x === b)); upd(); }));
+  $$('[data-dom]').forEach(c => c.addEventListener('change', () => { s.domains[c.dataset.dom] = c.checked; upd(); }));
+  $('#s-su').addEventListener('change', e => { s.signups = e.target.checked; $('#s-pm').hidden = s.signups; upd(); });
+  $('#s-pm').addEventListener('input', e => { s.pauseMsg = e.target.value; upd(); });
+  $('#s-bn').addEventListener('change', e => { s.banner = e.target.checked; $('#s-bm').hidden = !s.banner; upd(); });
+  $('#s-bm').addEventListener('input', e => { s.bannerMsg = e.target.value; upd(); });
+  $('#s-goal').addEventListener('input', e => { s.goal = Math.max(0, +e.target.value || 0); upd(); });
+  $('#s-save').addEventListener('click', () => { const ks = diff(); if(!ks.length) return; D.settings = JSON.parse(JSON.stringify(s)); log('admin', 'Changed settings', '', ks.map(k => label[k]).join(', ')); vSettings(); toast(ks.map(k => label[k]).join(', ')+'.', {t:'Settings saved'}); });
+  $('#s-reset').addEventListener('click', () => confirmBox({t:'Reset all demo data?', sub:'Every change made in this admin is undone. This only affects this browser.', ok:'Reset', danger:true}, () => { D = seed(); S.draft = {}; save(); render(); toast('Everything is back to the starting data.', {t:'Demo data reset', k:'info', i:'refresh'}); }));
+}
+
+render();
+})();
+</script>
+</body>
+</html>
