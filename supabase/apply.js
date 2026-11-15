@@ -16,8 +16,10 @@ const env = Object.fromEntries(fs.readFileSync(envFile, 'utf8').split('\n').filt
   });
   await c.connect();
   try {
-    await c.query(fs.readFileSync(path.join(__dirname, '0001_init.sql'), 'utf8'));
-    console.log('schema applied');
+    for (const f of fs.readdirSync(__dirname).filter(n => /^[0-9]{4}_.*\.sql$/.test(n)).sort()) {
+      await c.query(fs.readFileSync(path.join(__dirname, f), 'utf8'));
+      console.log('applied', f);
+    }
 
     const inst = JSON.parse(fs.readFileSync(path.join(__dirname, 'seed-institutes.json'), 'utf8'));
     for (const i of inst) {
