@@ -1,0 +1,218 @@
+[
+ {
+  "id": "nift",
+  "short": "NIFT",
+  "name": "National Institute of Fashion Technology",
+  "grp": "nift",
+  "email_domain": "nift.ac.in",
+  "campuses": [
+   "Bengaluru",
+   "Bhopal",
+   "Bhubaneswar",
+   "Chennai",
+   "Daman",
+   "Delhi",
+   "Gandhinagar",
+   "Hyderabad",
+   "Jodhpur",
+   "Kangra",
+   "Kannur",
+   "Kolkata",
+   "Mumbai",
+   "Panchkula",
+   "Patna",
+   "Raebareli",
+   "Shillong",
+   "Srinagar",
+   "Varanasi"
+  ],
+  "branches": [
+   "Fashion Design",
+   "Fashion Communication",
+   "Textile Design",
+   "Knitwear Design",
+   "Leather Design",
+   "Accessory Design",
+   "Apparel Production",
+   "Fashion Management"
+  ]
+ },
+ {
+  "id": "nid",
+  "short": "NID",
+  "name": "National Institute of Design",
+  "grp": "nid",
+  "email_domain": "nid.edu",
+  "campuses": [
+   "Ahmedabad",
+   "Gandhinagar",
+   "Bengaluru"
+  ],
+  "branches": [
+   "Graphic Design",
+   "Animation Film Design",
+   "Film & Video Communication",
+   "Product Design",
+   "Textile & Apparel Design",
+   "Interaction Design",
+   "Ceramic & Glass Design",
+   "Furniture & Interior Design",
+   "Exhibition Design",
+   "Photography Design",
+   "Toy & Game Design",
+   "Transportation & Automobile Design",
+   "Strategic Design Management",
+   "Universal Design"
+  ]
+ },
+ {
+  "id": "nidap",
+  "short": "NID Andhra Pradesh",
+  "name": "National Institute of Design, Andhra Pradesh",
+  "grp": "nid",
+  "email_domain": "nidap.ac.in",
+  "campuses": [],
+  "branches": [
+   "Communication Design",
+   "Industrial Design",
+   "Textile & Apparel Design"
+  ]
+ },
+ {
+  "id": "nida",
+  "short": "NID Assam",
+  "name": "National Institute of Design, Assam",
+  "grp": "nid",
+  "email_domain": "nidj.ac.in",
+  "campuses": [],
+  "branches": [
+   "Communication Design",
+   "Industrial Design",
+   "Textile & Apparel Design"
+  ]
+ },
+ {
+  "id": "nidh",
+  "short": "NID Haryana",
+  "name": "National Institute of Design, Haryana",
+  "grp": "nid",
+  "email_domain": "nidh.ac.in",
+  "campuses": [],
+  "branches": [
+   "Communication Design",
+   "Industrial Design",
+   "Textile & Apparel Design"
+  ]
+ },
+ {
+  "id": "nidmp",
+  "short": "NID Madhya Pradesh",
+  "name": "National Institute of Design, Madhya Pradesh",
+  "grp": "nid",
+  "email_domain": "nidmp.ac.in",
+  "campuses": [],
+  "branches": [
+   "Communication Design",
+   "Industrial Design",
+   "Textile & Apparel Design"
+  ]
+ },
+ {
+  "id": "iitb",
+  "short": "IIT Bombay",
+  "name": "IDC School of Design, IIT Bombay",
+  "grp": "iit",
+  "email_domain": "iitb.ac.in",
+  "campuses": [],
+  "branches": [
+   "B.Des",
+   "M.Des, Industrial Design",
+   "M.Des, Interaction Design",
+   "M.Des, Communication Design",
+   "M.Des, Animation",
+   "M.Des, Mobility & Vehicle Design"
+  ]
+ },
+ {
+  "id": "iitd",
+  "short": "IIT Delhi",
+  "name": "Department of Design, IIT Delhi",
+  "grp": "iit",
+  "email_domain": "iitd.ac.in",
+  "campuses": [],
+  "branches": [
+   "B.Des",
+   "M.Des"
+  ]
+ },
+ {
+  "id": "iitg",
+  "short": "IIT Guwahati",
+  "name": "Department of Design, IIT Guwahati",
+  "grp": "iit",
+  "email_domain": "iitg.ac.in",
+  "campuses": [],
+  "branches": [
+   "B.Des",
+   "M.Des"
+  ]
+ },
+ {
+  "id": "iith",
+  "short": "IIT Hyderabad",
+  "name": "Department of Design, IIT Hyderabad",
+  "grp": "iit",
+  "email_domain": "iith.ac.in",
+  "campuses": [],
+  "branches": [
+   "B.Des",
+   "M.Des"
+  ]
+ },
+ {
+  "id": "iiti",
+  "short": "IIT Indore",
+  "name": "IIT Indore",
+  "grp": "iit",
+  "email_domain": "iiti.ac.in",
+  "campuses": [],
+  "branches": [
+   "B.Des"
+  ]
+ },
+ {
+  "id": "iitj",
+  "short": "IIT Jodhpur",
+  "name": "School of Design, IIT Jodhpur",
+  "grp": "iit",
+  "email_domain": "iitj.ac.in",
+  "campuses": [],
+  "branches": [
+   "M.Des, XR Design"
+  ]
+ },
+ {
+  "id": "iitk",
+  "short": "IIT Kanpur",
+  "name": "Department of Design, IIT Kanpur",
+  "grp": "iit",
+  "email_domain": "iitk.ac.in",
+  "campuses": [],
+  "branches": [
+   "B.Des",
+   "M.Des"
+  ]
+ },
+ {
+  "id": "iitr",
+  "short": "IIT Roorkee",
+  "name": "Department of Design, IIT Roorkee",
+  "grp": "iit",
+  "email_domain": "iitr.ac.in",
+  "campuses": [],
+  "branches": [
+   "B.Des",
+   "M.Des"
+  ]
+ }
+]
