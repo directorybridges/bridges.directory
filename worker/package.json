@@ -1,0 +1,13 @@
+{
+  "name": "bridges-certs-worker",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Private certificate storage for Bridges.directory (Cloudflare R2 behind a Worker)",
+  "scripts": {
+    "dev": "wrangler dev --local",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}

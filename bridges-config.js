@@ -9,6 +9,8 @@ window.BRIDGES = {
       return localStorage.getItem('bridges-backend') !== '0';
     } catch (e) { return true; }
   })(),
+  // Address of the certificate Worker (Cloudflare R2). Empty = certificates stay in the database, as before.
+  certWorkerUrl: '',
   supabaseUrl: 'https://fpvqhqjdlqwfjsgblwzq.supabase.co',
   publishableKey: 'sb_publishable_44DFmgOXzrHCUV9xDkh8Ug_zxFIj2FM'
 };

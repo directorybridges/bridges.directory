@@ -87,7 +87,7 @@
       number_mismatch: 'That does not match the number you registered.', not_a_volunteer: 'You are not a volunteer.', volunteers_only: 'Only volunteers can do that.',
       own_application: 'You cannot review your own application.', already_reviewed: 'You have already reviewed this one.', not_pending: 'Someone has already decided this one.',
       signups_paused: 'Sign-ups are paused right now. Please try again later.', account_blocked: 'This account cannot be used on Bridges.directory. Write to us if you think this is a mistake.', codes_off: 'Email codes are switched off for your institute right now. Upload your certificate instead.',
-      file_deleted: 'That file has already been deleted.', verified_alums_only: 'Only verified alumni can refer.', bad_email: 'Enter a valid email address.', amount_too_small: 'The smallest contribution is ₹10.'
+      file_deleted: 'That file has already been deleted.', upload_failed: 'The file did not go through. Check your connection and try again.', database_error: 'Something went wrong on our side. Please try again.', server_error: 'Something went wrong on our side. Please try again.', verified_alums_only: 'Only verified alumni can refer.', bad_email: 'Enter a valid email address.', amount_too_small: 'The smallest contribution is ₹10.'
     };
     function why(e) {
       var m = (e && e.message) || '';
@@ -334,6 +334,19 @@
       } catch (e) { if (btn) btn.disabled = false; if (e.message !== 'profile_exists') { err.textContent = why(e); return; } }
       var out = await settle(); goNext(out);
     }
+    /* certificates in R2: the browser talks to the certificate Worker, which asks the database before it does anything */
+    async function certToken() { var s = (await sb.auth.getSession()).data.session; if (!s) throw { message: 'not_signed_in' }; return s.access_token; }
+    async function certFail(r) { var j = null; try { j = await r.json(); } catch (e) { /* no body */ } throw { message: (j && j.error) || 'upload_failed' }; }
+    async function uploadCert(blob) {
+      var id = await rpc('submit_certificate_start', { p_mime: blob.type, p_bytes: blob.size });
+      var r = await fetch(B.certWorkerUrl + '/u/' + id, { method: 'PUT', headers: { Authorization: 'Bearer ' + await certToken(), 'Content-Type': blob.type }, body: blob });
+      if (!r.ok) await certFail(r);
+    }
+    async function readCert(id) {
+      var r = await fetch(B.certWorkerUrl + '/f/' + id, { headers: { Authorization: 'Bearer ' + await certToken() } });
+      if (!r.ok) await certFail(r);
+      return r.blob();
+    }
     async function toBase64(blob) {
       return new Promise(function (res, rej) { var fr = new FileReader(); fr.onerror = function () { rej(fr.error); }; fr.onload = function () { res(String(fr.result).split(',')[1] || ''); }; fr.readAsDataURL(blob); });
     }
@@ -352,7 +365,7 @@
           if (!blob) { btn.disabled = false; return; }                       // closed without sending
           if (!/^image\/(jpeg|png|webp)$/.test(blob.type)) throw { message: 'bad_type' };
           if (blob.size > 8000000) throw { message: 'bad_file_size' };
-          await rpc('submit_certificate', { p_mime: blob.type, p_data_base64: await toBase64(blob) });
+          if (B.certWorkerUrl) await uploadCert(blob); else await rpc('submit_certificate', { p_mime: blob.type, p_data_base64: await toBase64(blob) });
           var out = await settle(); goNext(out); toast('Sent to the volunteer queue.');
         } catch (e) { btn.disabled = false; joinErr(e.message === 'bad_type' ? 'The hidden copy was not an image. Try again.' : why(e)); }
         return;
@@ -547,10 +560,11 @@
       var q = queue.filter(function (x) { return x.id === btn.dataset.doc; })[0]; if (!q) return;
       btn.disabled = true;
       try {
-        var r = await rpc('get_certificate', { p_request: q.id }), bin = atob(r.data), bytes = new Uint8Array(bin.length);
-        for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        var r = await rpc('get_certificate', { p_request: q.id }), fileBlob;
+        if (r.r2) { if (!B.certWorkerUrl) throw { message: 'upload_failed' }; fileBlob = await readCert(q.id); }
+        else { var bin = atob(r.data), bytes = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i); fileBlob = new Blob([bytes], { type: r.mime }); }
         if (q.fileUrl && q.fileUrl.indexOf('blob:') === 0) URL.revokeObjectURL(q.fileUrl);
-        q.fileUrl = URL.createObjectURL(new Blob([bytes], { type: r.mime })); q.fileType = r.mime;
+        q.fileUrl = URL.createObjectURL(fileBlob); q.fileType = r.mime;
         btn.disabled = false; replay(btn);
         var lg = $('.lb .legend'); if (lg && lg.lastChild && lg.lastChild.nodeType === 3) lg.lastChild.textContent = 'Fields to check. Everything else was hidden before upload.';
       } catch (e) { btn.disabled = false; toast(why(e), { t: 'Could not open it', k: 'warn' }); }

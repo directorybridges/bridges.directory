@@ -75,11 +75,22 @@
   function viewFile(q) {
     if (!q) return;
     var m = A.modal(A.mdHead('Certificate: ' + q.name, 'Admins see the whole file. Volunteers see only four lines: name, institute, branch and year.') + '<div id="cf" style="min-height:120px;display:grid;place-items:center"><span class="help">Loading…</span></div><div class="md-f"><button class="btn primary" type="button" data-mclose>Close</button></div>', 'Certificate');
-    rpc('admin_get_certificate', { p_request: q.request_id }).then(function (f) {
-      var box = $('#cf', m); if (!box) return;
+    var certBlob = function (f) {
+      if (f.r2) {
+        var B = window.BRIDGES || {};
+        if (!B.certWorkerUrl) return Promise.reject(new Error('upload_failed'));
+        return A.sb.auth.getSession().then(function (s) {
+          var tok = s.data.session && s.data.session.access_token; if (!tok) throw new Error('not_signed_in');
+          return fetch(B.certWorkerUrl + '/f/' + q.request_id, { headers: { Authorization: 'Bearer ' + tok } });
+        }).then(function (r) { if (!r.ok) throw new Error(r.status === 410 ? 'file_deleted' : r.status === 403 ? 'no_permission' : 'upload_failed'); return r.blob(); });
+      }
       var bin = atob(f.data), bytes = new Uint8Array(bin.length);
       for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-      var url = URL.createObjectURL(new Blob([bytes], { type: f.mime }));
+      return Promise.resolve(new Blob([bytes], { type: f.mime }));
+    };
+    rpc('admin_get_certificate', { p_request: q.request_id }).then(function (f) { return certBlob(f).then(function (blob) { return { blob: blob, mime: f.mime }; }); }).then(function (f) {
+      var box = $('#cf', m); if (!box) return;
+      var url = URL.createObjectURL(f.blob);
       box.innerHTML = /^image\//.test(f.mime) ? '<img alt="Certificate" src="' + url + '" style="max-width:100%;max-height:70vh;border-radius:8px">' : '<iframe title="Certificate" src="' + url + '" style="width:100%;height:70vh;border:0;border-radius:8px"></iframe>';
       var obs = new MutationObserver(function () { if (!m.isConnected) { URL.revokeObjectURL(url); obs.disconnect(); } });
       obs.observe(document.body, { childList: true });

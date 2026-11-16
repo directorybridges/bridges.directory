@@ -1,0 +1,18 @@
+# Cloudflare Worker for certificates. Deploy it in Aman's Cloudflare account (see worker/README.md).
+name = "bridges-certs"
+main = "src/index.js"
+compatibility_date = "2025-11-01"
+workers_dev = true
+
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "bridges-certificates"
+
+[vars]
+SUPABASE_URL = "https://fpvqhqjdlqwfjsgblwzq.supabase.co"
+# the public publishable key (the same one the website uses); the database decides what it may do
+SUPABASE_KEY = "sb_publishable_44DFmgOXzrHCUV9xDkh8Ug_zxFIj2FM"
+ALLOWED_ORIGINS = "https://bridges.directory,https://www.bridges.directory,http://localhost:8093"
+
+[triggers]
+crons = ["30 */6 * * *"]

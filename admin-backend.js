@@ -220,7 +220,7 @@
     owner_locked: 'The owner cannot be changed or removed.',
     already_on_team: 'They are already on the team.',
     not_yourself: 'You cannot do this to your own account.',
-    file_deleted: 'The certificate file has already been deleted.',
+    file_deleted: 'The certificate file has already been deleted.', upload_failed: 'The file could not be opened. Check the connection and try again.',
     no_free_id: 'No free faculty ID is left. Please tell the developer.',
     signups_paused: 'Sign-ups are paused.',
     account_blocked: 'This account is blocked.',
