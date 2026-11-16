@@ -43,6 +43,30 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR
     const rid = (await q(`select public.submit_certificate('image/png', $1) id`, [PNG])).rows[0].id;
     // V1 has a pending request of their own (inserted directly) (own request must be hidden from V1)
     await q('reset role');
+
+    // ---- directory version (the site re-downloads the directory only when this changes)
+    await asAnon();
+    await expectErr('directory version: anon refused', () => q(`select public.directory_version()`), /permission denied/);
+    await as(NV);
+    const v1 = (await q(`select public.directory_version() v`)).rows[0].v;
+    ok('directory version: counts the visible members', v1.n >= 3 && !!v1.at, JSON.stringify(v1));
+    await q('reset role');
+    await q(`update public.profiles set last_seen = now() + interval '1 minute' where id = $1`, [V1]);
+    await as(NV);
+    const v2 = (await q(`select public.directory_version() v`)).rows[0].v;
+    ok('directory version: unchanged when only last seen moves', v2.n === v1.n && v2.at === v1.at, JSON.stringify([v1, v2]));
+    await q('reset role');
+    await q(`update public.profiles set branch = 'Textile Design' where id = $1`, [V1]);
+    await as(NV);
+    const v3 = (await q(`select public.directory_version() v`)).rows[0].v;
+    ok('directory version: changes when a visible profile is edited', v3.at !== v2.at && v3.n === v2.n, JSON.stringify([v2, v3]));
+    await q('reset role');
+    await q(`update public.profiles set listed = false where id = $1`, [V2]);
+    await as(NV);
+    const v4 = (await q(`select public.directory_version() v`)).rows[0].v;
+    ok('directory version: the count drops when someone is hidden', v4.n === v3.n - 1, JSON.stringify([v3, v4]));
+    await q('reset role');
+    ok('directory name index exists', (await q(`select 1 from pg_indexes where indexname = 'profiles_dir_name_idx'`)).rowCount === 1);
     const own = uid();
     await q(`insert into public.verification_requests (id, applicant_id, delete_after) values ($1,$2, now()+interval '30 days')`, [own, V1]);
     await as(V1);

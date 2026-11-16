@@ -163,10 +163,13 @@
       for (var i = week.length; i < used; i++) week.push('_n' + i);   // opened people who are no longer listed still use up the week
       S.reveals = makeReveals(week, old);
     }
+    // "n|time" of the directory as the database has it now; the directory is only downloaded again when this changes
+    async function dirVersion() { try { var v = await rpc('directory_version'); return v ? v.n + '|' + v.at : ''; } catch (e) { return ''; } }
     async function loadDirectory() {
+      var ver = await dirVersion();
       var rows = [], from = 0, size = 1000, cols = 'id,kind,name,institute_id,campus,branch,year,helps,avatar,experiences,verify_method,verified_at,is_volunteer,listed,verified';
       for (;;) {
-        var r = ok(await sb.from('profiles').select(cols).order('name').range(from, from + size - 1));
+        var r = ok(await sb.from('profiles').select(cols).eq('listed', true).eq('verified', true).eq('status', 'active').order('name').order('id').range(from, from + size - 1));
         rows = rows.concat(r); if (r.length < size) break; from += size;
       }
       var me = S.user; people.length = 0;
@@ -177,7 +180,7 @@
         var p = mapRow(r), c = BR.contacts[r.id]; if (c) { p.cemail = c.email; p.links = c.links; }
         people.push(p);
       });
-      BR.peopleAt = Date.now();
+      BR.peopleAt = Date.now(); BR.dirVer = ver;
       try { (await rpc('institute_counts')).forEach(function (c) { BR.counts[c.institute_id] = { alums: +c.alums, students: +c.students }; }); } catch (e) {}
     }
     async function loadRefs() {
@@ -218,7 +221,7 @@
 
     /* ---------- who is signed in, and what do they need to do next ---------- */
     function clearMember() {
-      S.user = null; S.reveals = {}; people.length = 0; queue.length = 0; BR.contacts = {}; BR.uid = null;
+      S.user = null; S.reveals = {}; people.length = 0; queue.length = 0; BR.contacts = {}; BR.uid = null; BR.dirVer = '';
       S.join = { step: 1, kind: 'student', d: null, method: 'email', file: null, consent: false, qid: null, viaInstant: false, code: '', otp: null, g: '', gn: '' };
     }
     function dFromRow(row, priv, g) {
@@ -584,7 +587,7 @@
     });
     function staleDir() {
       if (Date.now() - BR.peopleAt < 60000 || !S.user) return; BR.peopleAt = Date.now();
-      loadDirectory().then(function () { var v = X('parse')().v; if (v === 'directory') F('refreshDir'); else if (v === 'browse') F('renderBrowse'); F('renderNav'); }).catch(function () {});
+      dirVersion().then(function (v) { if (v && v === BR.dirVer) return null; return loadDirectory(); }).then(function (did) { if (did === null) return; var v = X('parse')().v; if (v === 'directory') F('refreshDir'); else if (v === 'browse') F('renderBrowse'); F('renderNav'); }).catch(function () {});
     }
     wrap('renderDirectory', staleDir); wrap('renderBrowse', staleDir);
     setFn('maskEmail', function () { return 'Email hidden until you open it'; });
