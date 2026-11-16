@@ -42,6 +42,11 @@
     '#v-home #homeCopy .btn{height:46px;padding:0 var(--sp-l)}',
     '#v-home #homeCopy .btn.sm{height:40px;padding:0 var(--sp-m)}',
     '#v-home #homeCopy .btn.secondary,#v-home #homeCopy .btn.ghost{color:#f5f3ef}',
+    /* the nav joins the black on the home page, as in Aman's mock; other pages keep the normal nav */
+    'body[data-view="home"] .nav{--canvas:#000;--surface:#17161a;--ink:#f5f3ef;--ink-2:rgba(255,255,255,.78);--muted:rgba(255,255,255,.55);--line:rgba(255,255,255,.14);--line-strong:rgba(255,255,255,.2);--fill:rgba(255,255,255,.12);--fill-2:rgba(255,255,255,.2);--btn:#f5f3ef;--btn-h:#fff;--btn-fg:#161513;',
+    'background:#000;border-bottom:0;-webkit-backdrop-filter:none;backdrop-filter:none}',
+    'body[data-view="home"] .nav .links,body[data-view="home"] .nav .who{background:transparent}',
+    'body[data-view="home"] .nav .who:hover{background:var(--fill)}',
     '}',
     '@media (min-width:1000px) and (max-width:1199px){#v-home #gc{left:46%;width:54%}}',
     '@media (prefers-reduced-motion:reduce){#homeTiles .rise{transition:none}}'
