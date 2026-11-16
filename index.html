@@ -1341,8 +1341,8 @@ function seedAvatar(name, i){
 people.forEach((p, i) => { p.av = seedAvatar(p.name, i); });
 /* faculty: ghost accounts. The Bridges team creates each one with a unique ID and a password. Faculty can't sign up or edit their profile, and never appear in the directory */
 const faculty = [
-  {id:'f1', kind:'faculty', fid:'BRF-1042', pw:'bridges-demo', name:'Anjali Mehra', title:'Associate Professor', dept:'Interaction Design', inst:'nid', campus:'Ahmedabad', email:'anjali.m@nid.edu'},
-  {id:'f2', kind:'faculty', fid:'BRF-2318', pw:'bridges-demo', name:'Suresh Pillai', title:'Assistant Professor', dept:'Department of Design', inst:'iitg', campus:'', email:'suresh.p@iitg.ac.in'}
+  {id:'f1', kind:'faculty', fid:'BRF-1042', pw:'', name:'Anjali Mehra', title:'Associate Professor', dept:'Interaction Design', inst:'nid', campus:'Ahmedabad', email:'anjali.m@nid.edu'},
+  {id:'f2', kind:'faculty', fid:'BRF-2318', pw:'', name:'Suresh Pillai', title:'Assistant Professor', dept:'Department of Design', inst:'iitg', campus:'', email:'suresh.p@iitg.ac.in'}
 ];
 if(FEMALE.indexOf('Anjali') < 0) FEMALE.push('Anjali');
 faculty.forEach((f, i) => { f.av = seedAvatar(f.name, 3 + i * 5); f.exp = []; f.open = []; });
@@ -2378,7 +2378,7 @@ function renderLogin(){
       + '<label class="label" for="f-pw" style="margin:var(--sp-xs) 0 0">Password</label><div class="pw"><input class="input" id="f-pw" type="password" autocomplete="current-password"><button class="pw-b" type="button" data-pwshow aria-label="Show password" aria-pressed="false">'+ico('eye',16)+'</button></div>'
       + '<p class="err" id="f-err" role="alert"></p><button class="btn primary" type="submit">Sign in</button>'
       + '<p class="help">Forgot your password? Only the Bridges team can reset it. Write to <a href="mailto:hello@bridges.directory">hello@bridges.directory</a>.</p>'
-      + '<p class="demo">Prototype: try BRF-1042 with the password bridges-demo.</p></form>'
+      + '<p class="demo"></p></form>'
       + '<p class="alt-l">Not faculty? <button class="lnkb" type="button" data-facoff>Continue with Google</button></p>';
   } else {
     head = hd('Log in', 'Welcome back', 'Use the Google account you joined with. There\'s no password to remember.');
