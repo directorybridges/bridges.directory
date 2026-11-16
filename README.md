@@ -5,6 +5,7 @@
 - **Backend**: one Supabase project (Mumbai). Members, certificates, rules and the admin all live in its database. The site talks to it through `bridges-backend.js` (member site) and `admin-*.js` (admin). `bridges-config.js` holds the project address and the public key (public by design).
 - **Email**: Resend, called from the database (`send_email`). The Resend key is stored in Supabase Vault, not in the repo.
 - **Certificates**: today stored in the database. The private Cloudflare R2 version is in `worker/` (see `worker/README.md`) and switches on by filling `certWorkerUrl` in `bridges-config.js`.
+- **Home banner**: the animated globe (`hero-globe.js` and `fonts/`). It rebuilds itself from the home page, so a new design file does not remove it.
 - **Daily clean-up**: a database job (`bridges-daily-cleanup`, 02:00 IST) deletes expired certificates, old codes and expired invites.
 
 ## Everyday jobs
@@ -20,6 +21,7 @@ node tools/link-admin.js .
 node tools/extract-admin-data.js .
 node tools/strip-demo.js .
 ```
+(`wire-backend.js` also puts the globe script back.)
 Each can be run again safely. They re-attach the backend, the Admin link, the admin text defaults, and drop the prototype's demo passwords.
 
 ## Accounts that should all sit in the owner's name
