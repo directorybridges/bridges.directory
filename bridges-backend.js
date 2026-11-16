@@ -86,10 +86,12 @@
       consent_required: 'Please tick the box to continue.', application_exists: 'You have already applied.', verified_students_only: 'Only verified students can volunteer.',
       number_mismatch: 'That does not match the number you registered.', not_a_volunteer: 'You are not a volunteer.', volunteers_only: 'Only volunteers can do that.',
       own_application: 'You cannot review your own application.', already_reviewed: 'You have already reviewed this one.', not_pending: 'Someone has already decided this one.',
+      signups_paused: 'Sign-ups are paused right now. Please try again later.', account_blocked: 'This account cannot be used on Bridges.directory. Write to us if you think this is a mistake.', codes_off: 'Email codes are switched off for your institute right now. Upload your certificate instead.',
       file_deleted: 'That file has already been deleted.', verified_alums_only: 'Only verified alumni can refer.', bad_email: 'Enter a valid email address.', amount_too_small: 'The smallest contribution is ₹10.'
     };
     function why(e) {
       var m = (e && e.message) || '';
+      if (m === 'signups_paused' && window.BPublic && window.BPublic.pause_msg) return window.BPublic.pause_msg;
       if (ERR[m]) return ERR[m];
       if (/failed to fetch|networkerror|load failed/i.test(m)) return 'No connection. Check your internet and try again.';
       return 'Something went wrong. Please try again.';
@@ -289,12 +291,18 @@
       var r = await sb.auth.signInWithPassword({ email: email, password: pw });
       if (btn) btn.disabled = false;
       if (!r.error && r.data && r.data.user) BR.uid = r.data.user.id;
-      if (r.error) { err.textContent = 'That ID and password do not match. Check the email from the Bridges team, or ask them to reset it.'; $('#f-pw').value = ''; $('#f-pw').setAttribute('aria-invalid', 'true'); $('#f-pw').focus(); return; }
+      if (r.error) {
+        var banned = r.error.code === 'user_banned' || /banned/i.test(r.error.message || '');
+        err.textContent = banned ? 'This account is switched off. Ask the Bridges team.' : 'That ID and password do not match. Check the email from the Bridges team, or ask them to reset it.';
+        if (!banned) sb.rpc('log_faculty_failed', { p_fid: id }).then(function () {}, function () {});
+        $('#f-pw').value = ''; $('#f-pw').setAttribute('aria-invalid', 'true'); $('#f-pw').focus(); return;
+      }
+      sb.rpc('log_signin', { p_faculty: true }).then(function () {}, function () {});
       var out = await settle();
       if (out === 'member') F('signIn', S.user, S.user.kind === 'faculty' ? 'faculty ID ' + S.user.fid : '');
       else goNext(out);
     }
-    async function signOutNow() { try { await sb.auth.signOut(); } catch (e) {} BR.uid = null; }
+    async function signOutNow() { if (BR.uid) { try { await sb.rpc('log_signout'); } catch (e) {} } try { await sb.auth.signOut(); } catch (e) {} BR.uid = null; }
 
     /* ---------- join: profile, institute email, certificate, referral ---------- */
     function joinErr(t) { var e = $('#j-err2') || $('#j-err'); if (e) e.textContent = t; }
@@ -633,7 +641,7 @@
     });
     var start = function () { if (BR.booted) return; BR.booted = true; if (window.__BRBOOT) window.__BRBOOT(); };
     var fresh = false; try { fresh = sessionStorage.getItem('bridges-oauth') === '1'; sessionStorage.removeItem('bridges-oauth'); } catch (e) {}
-    settle().then(function (out) { BR.booted = true; goNext(out, fresh && out === 'member'); if (window.__BRBOOT) window.__BRBOOT(); })
+    settle().then(function (out) { BR.booted = true; if (fresh && BR.uid) sb.rpc('log_signin', { p_faculty: false }).then(function () {}, function () {}); goNext(out, fresh && out === 'member'); if (window.__BRBOOT) window.__BRBOOT(); })
       .catch(function (e) { console.error('[bridges] start-up failed', e); start(); toast('Could not reach the server. Please reload in a moment.', { t: 'Offline?', k: 'warn' }); });
     /* gentle polling: join status while waiting, the volunteer queue while volunteering */
     setInterval(function () {

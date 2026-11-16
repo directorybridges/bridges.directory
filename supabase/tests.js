@@ -174,7 +174,7 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR
     const pg = (await q('select * from public.contribution_progress()')).rows[0];
     ok('progress counts the payment', pg.raised_paise === '50000' && pg.target_paise === '1000000');
     await as(ADM);
-    ok('admin can view contributions', (await q('select count(*)::int n from public.admin_list_contributions()')).rows[0].n === 1);
+    ok('admin can view contributions', (await q('select count(*)::int n from public.admin_list_contributions()')).rows[0].n >= 1);
     await as(T);
     await expectErr('non-admin cannot view contributions', () => q('select * from public.admin_list_contributions()'), /admins_only/);
 

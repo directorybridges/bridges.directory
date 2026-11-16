@@ -5,12 +5,13 @@ const root = process.argv[2] || '.';
 function wire(file, tags) {
   const p = root + '/' + file;
   let s = fs.readFileSync(p, 'utf8');
-  if (s.includes('data-wire="backend"')) return console.log(file + ': already wired');
   if (!s.includes('</body>')) return console.log(file + ': no </body>, NOT wired');
-  const add = tags.map(t => `<script src="${t}" data-wire="backend"></script>`).join('\n');
-  s = s.replace('</body>', add + '\n</body>');
+  const missing = tags.filter(t => !s.includes(`<script src="${t}" data-wire="backend"></script>`));
+  if (!missing.length) return console.log(file + ': already wired');
+  const add = missing.map(t => `<script src="${t}" data-wire="backend"></script>`).join('\n');
+  s = s.replace(/<\/body>(?![\s\S]*<\/body>)/, add + '\n</body>');
   fs.writeFileSync(p, s);
-  console.log(file + ': wired');
+  console.log(file + ': wired ' + missing.join(', '));
 }
 // Light mode by default (client request): runs first, in <head>, so the page never flashes dark.
 function wireTheme(file) {
@@ -24,5 +25,5 @@ function wireTheme(file) {
 }
 wireTheme('index.html');
 wireTheme('admin.html');
-wire('index.html', ['bridges-config.js', 'vendor/supabase.js', 'redact.js', 'bridges-backend.js']);
-wire('admin.html', ['bridges-config.js', 'vendor/supabase.js', 'admin-backend.js']);
+wire('index.html', ['bridges-config.js', 'vendor/supabase.js', 'redact.js', 'bridges-backend.js', 'admin-data.js', 'content-apply.js']);
+wire('admin.html', ['bridges-config.js', 'vendor/supabase.js', 'admin-data.js', 'admin-backend.js', 'admin-people.js', 'admin-moderation.js', 'admin-site.js']);
