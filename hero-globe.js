@@ -9,7 +9,7 @@
 
   /* The line under the signed-in greeting. Replace the text here once Aman has chosen his own. */
   var QUOTE = '“I am because we are.”';
-  var QUOTE_BY = 'Ubuntu, a saying from southern Africa';
+  var QUOTE_BY = 'Students and alumni of NIFT, NID and the IITs, helping each other.';
 
   var CSS = [
     '@font-face{font-family:BrxInter;font-weight:400;font-display:swap;src:url(fonts/inter-400.woff2) format("woff2")}',
