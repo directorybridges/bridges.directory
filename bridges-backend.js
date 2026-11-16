@@ -29,11 +29,13 @@
 
   /* =============================================================== phase 1: attach the hook */
   function attach() {
+    /* The flag stops an endless reload loop. It stores the time, and counts only for 20 seconds, so a refresh or an
+       interrupted load can never leave a tab stuck on the error. */
     var KEY = 'bridges-hook-tried', tried = !!window.__BRHOOKING;
-    try { tried = tried || sessionStorage.getItem(KEY) === '1'; } catch (e) {}
+    try { var at = Number(sessionStorage.getItem(KEY)); tried = tried || (at > 0 && Date.now() - at < 20000); } catch (e) {}
     if (tried) return banner('The backend could not attach to this page. Open the site with ?backend=0 to go back to the prototype.');
     window.__BRHOOKING = true;
-    try { sessionStorage.setItem(KEY, '1'); } catch (e) {}
+    try { sessionStorage.setItem(KEY, String(Date.now())); } catch (e) {}
     document.documentElement.style.visibility = 'hidden';
     fetch(location.pathname + location.search, { cache: 'no-store', credentials: 'same-origin' })
       .then(function (r) { return r.text(); })
