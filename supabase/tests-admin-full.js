@@ -325,6 +325,57 @@ const uid = () => crypto.randomUUID();
     const sl = (await q(`select detail from public.admin_list_log('24h','admin','Changed settings',null,10)`)).rows.map(r => r.detail).join('|');
     ok('settings changes are logged with what changed', /Contacts per week/.test(sl) && /Sign-ups/.test(sl) && /Institute emails/.test(sl), sl);
 
+    // ---------------------------------------------------------------- admin invites (email + one-time code for a chosen college)
+    await root();
+    await q(`update public.admin_perms set allowed=true where role='Moderator' and perm='logs'`);
+    const IA = await mk('inv-alum@test.invalid'), IS = await mk('inv-stu@test.invalid');
+    await addProfile(IA, 'alum', 'TEST Invited Alum', 'iitb', { verified: false }); await q(`update public.profiles set listed=false, verified=false, verify_method=null where id=$1`, [IA]);
+    await addProfile(IS, 'student', 'TEST Invited Student', 'iitb', { verified: false }); await q(`update public.profiles set listed=false, verified=false, verify_method=null where id=$1`, [IS]);
+    await q(`update public.admin_perms set allowed=false where role='Support' and perm='verify'`);
+    await q(`update public.admin_perms set allowed=true where role='Moderator' and perm='verify'`);
+    await as(SUP);
+    await expectErr('invites: Support (no verify permission) cannot send', () => q(`select public.admin_create_referral('someone@test.invalid','iitb','alum')`), /no_permission/);
+    await expectErr('invites: Support cannot list', () => q(`select * from public.admin_list_referrals()`), /no_permission/);
+    await asAnon();
+    await expectErr('invites: anon cannot send', () => q(`select public.admin_create_referral('someone@test.invalid','iitb','alum')`), /permission denied|admins_only/);
+    await as(MOD);
+    await expectErr('invites: bad email refused', () => q(`select public.admin_create_referral('not-an-email','iitb','alum')`), /bad_email/);
+    await expectErr('invites: bad type refused', () => q(`select public.admin_create_referral('someone@test.invalid','iitb','teacher')`), /bad_kind/);
+    await expectErr('invites: unknown college refused', () => q(`select public.admin_create_referral('someone@test.invalid','nowhere','alum')`), /bad_campus/);
+    await q(`select public.admin_create_referral('  Someone@Test.Invalid ','nift','alum')`);
+    let rl = (await q(`select * from public.admin_list_referrals()`)).rows.filter(r => r.email === 'someone@test.invalid');
+    ok('invites: a code is created for a trimmed, lowercased email and college', rl.length === 1 && rl[0].status === 'pending' && rl[0].institute_id === 'nift' && rl[0].kind === 'alum' && rl[0].sent_by === 'Admin', JSON.stringify(rl));
+    await q(`select public.admin_create_referral('someone@test.invalid','nift','alum')`);
+    rl = (await q(`select * from public.admin_list_referrals()`)).rows.filter(r => r.email === 'someone@test.invalid');
+    ok('invites: sending again replaces the earlier code (one waiting, one expired)', rl.filter(r => r.status === 'pending').length === 1 && rl.filter(r => r.status === 'expired').length === 1, JSON.stringify(rl.map(r => r.status)));
+    await q(`select public.admin_cancel_referral($1)`, [rl.filter(r => r.status === 'pending')[0].id]);
+    rl = (await q(`select * from public.admin_list_referrals()`)).rows.filter(r => r.email === 'someone@test.invalid');
+    ok('invites: cancelling expires the waiting code', rl.every(r => r.status === 'expired'));
+    await expectErr('invites: an already-expired code cannot be cancelled again', () => q(`select public.admin_cancel_referral($1)`, [rl[0].id]), /not_found/);
+    const il = (await q(`select act, target, detail from public.admin_list_log('24h','verify',null,null,50)`)).rows;
+    ok('invites: sending and cancelling are logged', il.some(r => /Sent an invite code/.test(r.act) && r.target === 'someone@test.invalid' && /Nift|NIFT/i.test(r.detail)) && il.some(r => /Cancelled an invite code/.test(r.act)), JSON.stringify(il.slice(0, 4)));
+
+    // redeeming: a code made by an admin works for the right college and type only
+    await root();
+    await q(`insert into public.referrals (referrer_id, created_by, institute_id, invitee_email, kind, code_hash, expires_at) values (null,$1,'iitb','inv-stu@test.invalid','student',public.hash_code('TESTSTU1'),now()+interval '5 days')`, [MOD]);
+    await q(`insert into public.referrals (referrer_id, created_by, institute_id, invitee_email, kind, code_hash, expires_at) values (null,$1,'iitb','inv-alum@test.invalid','alum',public.hash_code('TESTALM1'),now()+interval '5 days')`, [MOD]);
+    await as(IA);
+    ok('invites: a student code does not work for an alum', (await q(`select public.redeem_referral('TESTSTU1') r`)).rows[0].r === false);
+    await as(IS);
+    ok('invites: an alum code does not work for a student', (await q(`select public.redeem_referral('TESTALM1') r`)).rows[0].r === false);
+    ok('invites: the right code verifies and lists a student', (await q(`select public.redeem_referral('TESTSTU1') r`)).rows[0].r === true);
+    await root();
+    const pr = (await q(`select verified, listed, verify_method from public.profiles where id=$1`, [IS])).rows[0];
+    ok('invites: the member is verified and listed via referral', pr.verified && pr.listed && pr.verify_method === 'referral', JSON.stringify(pr));
+    await q(`insert into public.referrals (referrer_id, created_by, institute_id, invitee_email, kind, code_hash, expires_at) values (null,$1,'nift','inv-alum@test.invalid','alum',public.hash_code('TESTNIFT'),now()+interval '5 days')`, [MOD]);
+    await as(IA);
+    ok('invites: a code for another college does not work', (await q(`select public.redeem_referral('TESTNIFT') r`)).rows[0].r === false);
+    ok('invites: the right alum code verifies and lists an alum', (await q(`select public.redeem_referral('TESTALM1') r`)).rows[0].r === true);
+    await expectErr('invites: someone already verified cannot redeem another code', () => q(`select public.redeem_referral('TESTNIFT')`), /alums_only/);
+    await root();
+    const used = (await q(`select status, used_by from public.referrals where code_hash = public.hash_code('TESTALM1')`)).rows[0];
+    ok('invites: a used code is marked joined and cannot be reused', used.status === 'joined' && used.used_by === IA, JSON.stringify(used));
+
     // ---------------------------------------------------------------- overview
     await as(SUP);
     const ov = (await q(`select public.admin_overview() o`)).rows[0].o;

@@ -359,4 +359,73 @@
   }
 
   A.register('faculty', { render: renderFaculty });
+
+  /* ------------------------------------------------------------------ Invites: email a one-time code for a chosen college */
+  var IV = { rows: null, loading: false, kind: 'alum', inst: '' };
+  var ivPill = function (r) { return { pending: '<span class="pill warn dot">Waiting</span>', joined: '<span class="pill pos dot">Joined</span>', expired: '<span class="pill dot">Expired</span>' }[r.status] || ''; };
+  function loadInvites() {
+    if (IV.loading) return Promise.resolve();
+    IV.loading = true;
+    return rpc('admin_list_referrals', { p_limit: 200 }).then(function (r) { IV.rows = r || []; }).finally(function () { IV.loading = false; });
+  }
+  function instPlain(cur) {
+    return A.GROUPS.map(function (g) {
+      return '<optgroup label="' + g[1] + 's">' + ST.instRows.filter(function (i) { return i.grp === g[0]; }).map(function (i) {
+        return '<option value="' + esc(i.id) + '"' + (i.id === cur ? ' selected' : '') + '>' + esc(i.short) + '</option>';
+      }).join('') + '</optgroup>';
+    }).join('');
+  }
+  function renderInvites() {
+    if (IV.rows === null) {
+      A.view().innerHTML = '<div class="empty"><span>Loading…</span></div>';
+      loadInvites().then(function () { if (ST.view === 'invites') renderInvites(); }, A.fail);
+      return;
+    }
+    if (!IV.inst) IV.inst = (ST.instRows[0] || {}).id || '';
+    var waiting = IV.rows.filter(function (r) { return r.status === 'pending'; }).length;
+    A.view().innerHTML = ph('Invites', 'Add an email address and pick a college. They get a one-time code by email. With it they sign in with Google, choose that college and are verified and listed straight away.') +
+      '<section class="card"><div style="padding:16px 18px"><div class="fld"><label class="label" for="iv-em">Email addresses</label><textarea class="input" id="iv-em" rows="2" placeholder="name@gmail.com" style="resize:vertical"></textarea><span class="help">One address, or several separated by commas, spaces or new lines.</span></div>' +
+      '<div class="grid2"><div class="fld"><label class="label" for="iv-in">College</label><select class="input" id="iv-in">' + instPlain(IV.inst) + '</select></div>' +
+      '<div class="fld"><span class="label">They are</span><div class="seg" role="group" aria-label="They are">' + [['alum', 'Alum'], ['student', 'Student']].map(function (k) { return '<button type="button" data-ik="' + k[0] + '" aria-pressed="' + (IV.kind === k[0]) + '">' + k[1] + '</button>'; }).join('') + '</div></div></div>' +
+      '<p class="err" id="iv-err" role="alert"></p><div style="display:flex;justify-content:flex-end"><button class="btn primary" type="button" id="iv-send">' + ico('mail', 16) + 'Send invite</button></div></div></section>' +
+      '<section class="card" style="margin-top:16px"><div class="tools"><b>Sent invites</b><span class="cnt">' + IV.rows.length + ' sent · ' + waiting + ' waiting</span></div>' +
+      '<div class="tbl" style="--cols:minmax(0,2fr) minmax(0,1fr) 84px 96px 110px 90px;--cols-t:minmax(0,2fr) minmax(0,1fr) 96px 90px;--cols-m:minmax(0,1fr) auto"><div class="tr th"><span>Email</span><span>College</span><span class="ht">Type</span><span>Status</span><span class="ht">Sent</span><span></span></div>' +
+      (IV.rows.length ? IV.rows.map(function (r) {
+        return '<div class="tr"><span class="who"><span><b class="ell">' + esc(r.email) + '</b><small class="mo">' + esc(r.institute + ' · ' + (KIND[r.kind] || r.kind)) + '</small></span></span><span class="hm ell">' + esc(r.institute) + '</span><span class="hm ht sub">' + esc(KIND[r.kind] || r.kind) + (r.sent_by === 'Member' ? ' · by a member' : '') + '</span><span>' + ivPill(r) + '</span><span class="hm ht sub">' + fmtD(r.created_at) + '</span><span class="hm">' + (r.status === 'pending' ? '<button class="btn ghost sm" type="button" data-ic="' + r.id + '">Cancel</button>' : '') + '</span></div>';
+      }).join('') : '<div class="empty">' + ico('mail', 20) + '<span>No invites sent yet.</span></div>') + '</div></section>' +
+      '<div class="callout">' + ico('info', 15) + '<span>A code works once, only for the college you picked, and expires after the number of days set in Settings. Sending again to the same address and college replaces the earlier code.</span></div>';
+    $('#iv-in').addEventListener('change', function (e) { IV.inst = e.target.value; });
+    $$('[data-ik]').forEach(function (b) { b.addEventListener('click', function () { IV.kind = b.dataset.ik; $$('[data-ik]').forEach(function (x) { x.setAttribute('aria-pressed', x === b); }); }); });
+    $('#iv-send').addEventListener('click', sendInvites);
+    $$('[data-ic]').forEach(function (b) { b.addEventListener('click', function () {
+      var r = IV.rows.filter(function (x) { return x.id === b.dataset.ic; })[0]; if (!r) return;
+      A.confirmBox({ t: 'Cancel this invite?', sub: 'The code sent to ' + r.email + ' stops working.', ok: 'Cancel invite', danger: true }, function () {
+        return rpc('admin_cancel_referral', { p_id: r.id }).then(function () { IV.rows = null; toast('The code for ' + r.email + ' no longer works.', { t: 'Invite cancelled', k: 'info' }); if (ST.view === 'invites') renderInvites(); });
+      });
+    }); });
+  }
+  function sendInvites() {
+    var err = $('#iv-err'), btn = $('#iv-send'), raw = $('#iv-em').value;
+    var list = raw.split(/[\s,;]+/).map(function (x) { return x.trim().toLowerCase(); }).filter(Boolean).filter(function (x, i, a) { return a.indexOf(x) === i; });
+    err.textContent = '';
+    if (!list.length) { err.textContent = 'Enter at least one email address.'; return; }
+    var bad = list.filter(function (x) { return !A.validEmail(x); });
+    if (bad.length) { err.textContent = 'This does not look like an email address: ' + bad[0]; return; }
+    if (list.length > 20) { err.textContent = 'Send up to 20 at a time.'; return; }
+    btn.disabled = true;
+    var ok = 0, failed = [];
+    list.reduce(function (p, em) {
+      return p.then(function () { return rpc('admin_create_referral', { p_email: em, p_institute: IV.inst, p_kind: IV.kind }).then(function () { ok++; }, function (e) {
+        if (/admins_only/.test(e.message || '')) throw e;
+        failed.push(em + ' (' + A.friendly(e) + ')');
+      }); });
+    }, Promise.resolve()).then(function () {
+      IV.rows = null;
+      if (ok) toast(ok === 1 ? 'Code sent to ' + list[0] + '.' : ok + ' codes sent.', { t: 'Invite sent' });
+      renderInvites();
+      if (failed.length) setTimeout(function () { var e2 = $('#iv-err'); if (e2) e2.textContent = 'Not sent: ' + failed.join('; '); }, 400);
+    }, function (e) { btn.disabled = false; A.fail(e); });
+  }
+  A.register('invites', { render: renderInvites });
+
 })();

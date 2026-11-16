@@ -359,16 +359,16 @@
   // [heading, [[view, label, icon, count(), permission]]]
   var NAV = [
     [null, [['overview', 'Overview', 'layout']]],
-    ['People', [['members', 'Members', 'users'], ['faculty', 'Faculty accounts', 'key', null, 'faculty'],
+    ['People', [['members', 'Members', 'users'], ['invites', 'Invites', 'mail', null, 'verify'], ['faculty', 'Faculty accounts', 'key', null, 'faculty'],
                 ['applications', 'Volunteer applications', 'inbox', function () { return ST.counts.apps; }], ['volunteers', 'Volunteers', 'users']]],
     ['Moderation', [['verify', 'Verification', 'shieldok', function () { return ST.counts.verify; }, 'verify'],
                     ['reports', 'Reports', 'flag', function () { return ST.counts.reports; }, 'reports'], ['logs', 'Activity log', 'activity', null, 'logs']]],
     ['Money', [['contributions', 'Contributions', 'wallet']]],
     ['Site', [['content', 'Page text', 'type', null, 'content'], ['roles', 'Roles and permissions', 'lock'], ['settings', 'Settings', 'sliders', null, 'settings']]]
   ];
-  var TITLES = { overview: 'Overview', members: 'Members', faculty: 'Faculty accounts', applications: 'Volunteer applications', volunteers: 'Volunteers',
+  var TITLES = { overview: 'Overview', members: 'Members', invites: 'Invites', faculty: 'Faculty accounts', applications: 'Volunteer applications', volunteers: 'Volunteers',
                  verify: 'Verification', reports: 'Reports', logs: 'Activity log', contributions: 'Contributions', content: 'Page text', roles: 'Roles and permissions', settings: 'Settings' };
-  var NEEDS = { faculty: 'faculty', verify: 'verify', reports: 'reports', logs: 'logs', content: 'content', settings: 'settings' };
+  var NEEDS = { invites: 'verify', faculty: 'faculty', verify: 'verify', reports: 'reports', logs: 'logs', content: 'content', settings: 'settings' };
   var isDark = function () { return document.documentElement.dataset.theme === 'dark'; };
   function setTheme(t) { document.documentElement.dataset.theme = t; try { localStorage.setItem('bridges-admin-theme', t); } catch (e) { /* ignore */ } }
 
