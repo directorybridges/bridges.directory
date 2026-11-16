@@ -1,4 +1,4 @@
-/* Light mode by default, for everyone. People can switch to dark and it is remembered.
+/* Admin portal only: light mode by default. People can switch to dark and it is remembered.
  * There is no "follow the system" setting. Loaded first in <head> so the page never flashes dark. */
 (function () {
   var admin = /admin/i.test(location.pathname);

@@ -13,7 +13,8 @@ function wire(file, tags) {
   fs.writeFileSync(p, s);
   console.log(file + ': wired ' + missing.join(', '));
 }
-// Light mode by default (client request): runs first, in <head>, so the page never flashes dark.
+// Light mode by default for the ADMIN portal only (client request). The member site keeps Atharva's own theme choices.
+// Runs first, in <head>, so the page never flashes dark.
 function wireTheme(file) {
   const p = root + '/' + file;
   let s = fs.readFileSync(p, 'utf8');
@@ -23,7 +24,6 @@ function wireTheme(file) {
   fs.writeFileSync(p, s);
   console.log(file + ': theme wired');
 }
-wireTheme('index.html');
 wireTheme('admin.html');
 wire('index.html', ['bridges-config.js', 'vendor/supabase.js', 'redact.js', 'bridges-backend.js', 'admin-data.js', 'content-apply.js']);
 wire('admin.html', ['bridges-config.js', 'vendor/supabase.js', 'admin-data.js', 'admin-backend.js', 'admin-people.js', 'admin-moderation.js', 'admin-site.js']);
