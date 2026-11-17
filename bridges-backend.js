@@ -459,41 +459,44 @@
     function refClear() { try { localStorage.removeItem(REFKEY); } catch (e) { /* storage blocked */ } }
     function refRoute() { var p = (location.hash || '').replace(/^#/, '').split('/'); if (p[0] !== 'join' || p[1] !== 'referral') return null; try { return decodeURIComponent(p[2] || ''); } catch (e) { return p[2] || ''; } }
     function refShell(cur) {
+      var all = cur > 4; if (all) cur = 4;               // 5 = every step finished (the Listed page)
       var steps = ['Referral code', 'Sign in', 'Your profile', 'Listed'], pct = [6, 30, 55, 100][cur - 1], label = cur === 4 ? 'Done' : 'Step ' + cur + ' of 4';
-      var items = steps.map(function (t, i) { var n = i + 1, cls = cur > n ? 'done' : cur === n ? 'cur' : ''; return '<li class="' + cls + '"><span class="dot">' + (cls === 'done' ? F('ico', 'check', 10) : '') + '</span><span>' + rfEsc(t) + '</span></li>'; }).join('');
+      var items = steps.map(function (t, i) { var n = i + 1, cls = all || cur > n ? 'done' : cur === n ? 'cur' : ''; return '<li class="' + cls + '"><span class="dot">' + (cls === 'done' ? F('ico', 'check', 10) : '') + '</span><span>' + rfEsc(t) + '</span></li>'; }).join('');
       return '<div class="prog" aria-label="Sign-up progress"><div class="prog-top"><b>' + rfEsc(steps[cur - 1]) + '</b><span class="muted">' + label + '</span></div>'
         + '<div class="track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + pct + '"><i style="--p:' + pct + '%"></i></div><ol class="steps">' + items + '</ol></div>';
     }
     function refHead() {
       return '<div class="head"><span class="eyebrow">Sign up · Referral</span><h2 class="h2">Sign up with a referral</h2>'
-        + '<p class="lede">Someone from your institute vouched for you. Enter the code from your email and you skip verification.</p>'
-        + '<p class="help" style="margin-top:6px">No code? <a href="#join/alum"><b>Sign up as an alum</b></a> and verify with your certificate.</p></div>';
+        + '<p class="lede">An alum of your institute vouched for you. Enter the code from your email and you skip verification.</p>'
+        + '<p style="margin-top:4px;font-size:.875rem;color:var(--muted)">No code? <a href="#join/alum"><b>Sign up as an alum</b></a> and verify with your certificate.</p></div>';
     }
     function refPage(cur, inner) { $('#v-join').innerHTML = refHead() + '<div class="wrap" style="display:grid;gap:var(--sp-l)">' + refShell(cur) + (inner || '') + '</div>'; }
     function refFail(msg) { BR.rf = Object.assign(BR.rf || {}, { err: msg, checking: false }); F('renderJoin'); }
     async function refCheck(code) {
       var c = rfNorm(code);
-      if (c.length < 4) return refFail('Enter the code from your email.');
+      if (c.length < 6) return refFail('Codes look like K7Q2M4XD. Check the email from Bridges.directory.');
       var res; try { res = await rpc('check_referral', { p_code: c }); } catch (e) { return refFail(why(e)); }
       if (!res || !res.ok) return refFail('That code did not work. Check it, or ask your referrer for a new one.');
-      refSet({ code: c, kind: res.kind, inst: res.institute_id, iname: res.institute_name, ishort: res.institute_short, by: res.by || '' });
+      refSet({ code: c, kind: res.kind, inst: res.institute_id, iname: res.institute_name, ishort: res.institute_short, by: res.by || '', byFull: res.by_full || '', byAv: res.by_avatar || null });
       BR.rf = { change: false, err: '', code: '' }; F('renderJoin');
     }
     function refLanding(rc) {
       var R = BR.rf = BR.rf || { change: false, err: '', code: '' }, ref = refGet();
       if (ref && !R.change && (!rc || rfNorm(rc) === ref.code)) {
-        var kindW = ref.kind === 'student' ? 'a student' : 'an alum', who = ref.by ? rfEsc(ref.by) + ' vouched for you' : 'The Bridges team invited you';
-        refPage(2, '<div class="form" style="display:grid;gap:var(--sp-m)"><span class="pill pos" style="justify-self:start">' + F('ico', 'check', 12) + ' Code accepted</span>'
-          + '<div><h3>' + who + '</h3><p class="help" style="margin-top:4px">' + (ref.by ? rfEsc(ref.by) + ' is a verified alum of ' + rfEsc(ref.iname) + '. ' : '') + 'You\'ll be listed as ' + kindW + ' of ' + rfEsc(ref.iname) + ' and verified as soon as you finish your profile.</p></div>'
+        var kindW = ref.kind === 'student' ? 'a student' : 'an alum', nm = ref.byFull || ref.by, who = nm ? rfEsc(nm) + ' vouched for you' : 'The Bridges team invited you', av = '';
+        if (ref.byAv && nm) { try { av = F('avatarHtml', ref.byAv).replace('<span class="av">', '<span class="av" style="width:56px;height:56px">'); } catch (e) { av = ''; } }
+        refPage(2, '<div class="form" style="display:grid;gap:var(--sp-m)"><div style="display:flex;gap:var(--sp-m);align-items:flex-start">' + av + '<div style="min-width:0;display:grid;gap:8px;justify-items:start"><span class="pill pos">' + F('ico', 'check', 12) + ' Code ' + rfEsc(ref.code) + ' accepted</span>'
+          + '<div><h3>' + who + '</h3><p class="help" style="margin-top:4px">' + (ref.by ? rfEsc(ref.by) + ' is a verified alum of ' + rfEsc(ref.iname) + '. ' : '') + 'You\'ll be listed as ' + kindW + ' of ' + rfEsc(ref.iname) + ' and verified as soon as you finish your profile.</p></div></div></div>'
+          + '<hr style="border:0;border-top:1px solid var(--line);margin:0">'
           + F('gBtn', 'Continue with Google', 'data-jg')
-          + '<p class="help" style="text-align:center">Wrong code? <button class="lnkb" type="button" data-rf-diff>Use a different one</button></p>'
+          + '<p class="help" style="text-align:center;font-size:.875rem">Wrong code? <button class="lnkb" type="button" data-rf-diff>Use a different one</button></p>'
           + '<p class="legal-l">By continuing, you agree to the <a href="#terms">Terms of use</a> and <a href="#privacy">Privacy policy</a>.</p></div>');
         return;
       }
       if (rc && !R.tried && !R.change) { R.tried = true; R.checking = true; R.code = rc; refCheck(rc); }
-      refPage(1, '<form class="form" id="rf-form" novalidate style="display:grid;gap:var(--sp-s)"><div><h3>Enter your referral code</h3>'
-        + '<p class="help" style="margin-top:4px">It\'s in the email from Bridges.directory. If you opened the link in that email, it\'s already filled in.</p></div>'
-        + '<div style="display:flex;gap:var(--sp-xs);flex-wrap:wrap"><input class="input code-in" id="rf-in" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="15" placeholder="Code from your email" style="flex:1 1 200px;max-width:320px" value="' + rfEsc(R.code || rc || '') + '"'
+      refPage(1, '<form class="form" id="rf-form" novalidate style="display:grid;gap:var(--sp-m)"><div style="display:flex;gap:var(--sp-m);align-items:flex-start"><span style="flex:none;width:48px;height:48px;border-radius:10px;background:var(--butter);display:grid;place-items:center;color:var(--tint-ink)">' + F('ico', 'key', 20) + '</span><div style="min-width:0"><h3>Enter your referral code</h3>'
+        + '<p class="help" style="margin-top:4px">It\'s in the email from Bridges.directory and looks like K7Q2M4XD. If you opened the link in that email, it\'s already filled in.</p></div></div>'
+        + '<div style="display:flex;gap:12px;flex-wrap:wrap"><input class="input code-in" id="rf-in" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="15" placeholder="XXXXXXXX" style="flex:0 1 180px" value="' + rfEsc(R.code || rc || '') + '"'
         + (R.err ? ' aria-invalid="true"' : '') + '><button class="btn primary" type="submit"' + (R.checking ? ' disabled' : '') + '>' + (R.checking ? 'Checking…' : 'Check code') + '</button></div>'
         + '<p class="err" id="rf-err" role="alert">' + rfEsc(R.err || '') + '</p></form>'
         + '<p class="alt-sw" style="text-align:center">Already have an account? <a href="#login">Log in</a></p>');
@@ -506,7 +509,7 @@
       var pr = $('.prog', v); if (pr) pr.outerHTML = refShell(3);
       var eb = $('.head .eyebrow', v); if (eb) eb.textContent = 'Sign up · Referral';
       var h2 = $('.head .h2', v); if (h2) h2.textContent = 'Sign up with a referral';
-      var lede = $('.head .lede', v); if (lede) lede.textContent = 'Your code is accepted. Finish your profile and you are listed straight away.';
+      var hd = $('.head', v); if (hd) hd.outerHTML = refHead();   // same heading block as the first two steps
       var seg = $('[data-jk]', v); if (seg) { var row = seg.closest('.fr'); if (row) row.remove(); }
       var sel = $('#j-inst', v);
       if (sel) {
@@ -517,6 +520,11 @@
           var pt = real[0].value.split('|');
           if (!J.d || J.d.inst !== pt[0] || (J.d.campus || '') !== (pt[1] || '')) { J.d = Object.assign({}, J.d, { inst: pt[0], campus: pt[1] || '', branch: '' }); F('renderJoin'); return; }
           $$('option', sel).filter(function (o) { return !o.value; }).forEach(function (o) { o.remove(); });
+          if (!$('.rf-fixed', sel.parentNode)) {            // one fixed institute: show it as a plain line with a "Referral" tag, the select stays (hidden) to carry the value
+            sel.hidden = true; sel.value = real[0].value;
+            var fx = document.createElement('div'); fx.className = 'rf-fixed'; fx.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:40px;padding:0 8px 0 12px;border-radius:8px;background:var(--fill);font-size:.875rem';
+            fx.innerHTML = '<span>' + rfEsc(real[0].textContent) + '</span><span class="pill pos">' + F('ico', 'check', 12) + ' Referral</span>'; sel.parentNode.insertBefore(fx, sel);
+          }
         }
         var fr = sel.closest('.fr'), lh = fr && $('.lh span', fr); if (lh) lh.textContent = 'Set by your referral.';
       }
@@ -531,13 +539,24 @@
       var good = false, msg = '';
       try { good = await rpc('redeem_referral', { p_code: ref.code }); if (!good) msg = 'That code did not work. Check it, or ask your referrer for a new one.'; } catch (e) { msg = why(e); }
       BR.rfBusy = false; refClear();
-      if (good) { await becomeMember('You\'re listed.', 'referral'); return; }
+      if (good) { BR.rfDone = true; await becomeMember('Your referral verified you. You\'re listed.', 'referral'); return; }
       J.method = 'referral'; J.code = ref.code; F('renderJoin'); joinErr(msg);
     }
     function refPost() {
       var J = S.join, rc = refRoute();
-      if (S.user && rc !== null) { location.hash = 'home'; toast('You already have an account.', { k: 'info', i: 'info' }); return true; }
+      if (S.user && rc !== null && !(J.step === 4 && BR.rfDone)) {
+        $('#v-join').innerHTML = refHead() + '<div class="wrap" style="display:grid;gap:var(--sp-l)"><div class="status"><div><h3>You\'re logged in as ' + rfEsc(S.user.name) + '</h3><p class="help" style="margin-top:4px">Referral codes are for new members. Log out first to sign up with this code.</p></div>'
+          + '<div class="actions" style="padding-top:0"><button class="btn primary" type="button" data-act="logout">Log out</button><a class="btn ghost" href="#home">Cancel</a></div></div></div>';
+        return true;
+      }
       if (!J.g && J.step === 1 && !S.user) { if (rc === null) return false; refLanding(rc); return true; }
+      if (J.step === 4 && BR.rfDone && S.user) {          // listed through a referral: same page, referral heading and a finished progress bar
+        var v4 = $('#v-join'), eb4 = $('.head .eyebrow', v4), h4 = $('.head .h2', v4), l4 = $('.head .lede', v4), pr4 = $('.prog', v4);
+        if (eb4) eb4.textContent = 'Sign up · Referral'; if (h4) h4.textContent = 'Sign up with a referral'; if (l4) l4.textContent = 'An alum of your institute vouched for you. Enter the code from your email and you skip verification.';
+        if (pr4) pr4.outerHTML = refShell(5);
+        return true;
+      }
+      if (J.step !== 4) BR.rfDone = false;
       var ref = refGet(); if (!ref) return false;
       if (J.step === 1 && J.g) { refProfile(ref); return true; }
       if (J.step === 2) { refRedeem(ref); return true; }
