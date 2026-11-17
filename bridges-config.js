@@ -10,7 +10,7 @@ window.BRIDGES = {
     } catch (e) { return true; }
   })(),
   // Address of the certificate Worker (Cloudflare R2). Empty = certificates stay in the database, as before.
-  certWorkerUrl: '',
+  certWorkerUrl: 'https://bridges-certs.directorybridges.workers.dev',
   supabaseUrl: 'https://fpvqhqjdlqwfjsgblwzq.supabase.co',
   publishableKey: 'sb_publishable_44DFmgOXzrHCUV9xDkh8Ug_zxFIj2FM'
 };

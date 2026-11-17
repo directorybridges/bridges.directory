@@ -19,6 +19,13 @@ Certificates are stored in a **private** R2 bucket in Aman's Cloudflare account.
    ```
 3. Put the Worker address that `deploy` prints into `bridges-config.js` as `certWorkerUrl` (for example `https://bridges-certs.<account>.workers.dev`), commit and push. While it is empty the site keeps storing certificates in the database.
 
+## Where it lives now (set up 18 November 2026)
+- Cloudflare account: Aman's (`Directorybridges@gmail.com's Account`). The account ID is pinned in `wrangler.toml`, so a deploy cannot land in any other account.
+- Bucket: `bridges-certificates` (private, no public access), rule `safety-60d` deletes anything under `certs/` after 60 days.
+- Worker: `bridges-certs`, address `https://bridges-certs.directorybridges.workers.dev` (also set as `certWorkerUrl` in `bridges-config.js`). Preview URLs are off. The 6-hourly clean-up runs at minute 30 (00:30, 06:30, 12:30, 18:30 UTC).
+- Secret `WORKER_SECRET` is set from the Supabase Vault value `cert_worker_secret`. To rotate: change it in Vault, then run `npx wrangler secret put WORKER_SECRET` with the same value.
+- Checked live: 32 end-to-end checks (upload, read, refusals, CORS, deletion queue) and the real clean-up removing a file from R2.
+
 ## Test on your own computer (nothing is written to Cloudflare)
 ```
 cd supabase && node apply.js ../.env
