@@ -419,6 +419,8 @@
     /* anything after the prototype drew the join page */
     function postJoin() {
       var J = S.join, v = $('#v-join'); if (!v) return;
+      if (refPost()) return;
+      var jc = $('#j-code', v); if (jc) { jc.maxLength = 15; jc.placeholder = 'Code from your email'; }
       if (J.step === 2) {
         var back = $('[data-jback]', v); if (back) back.remove();
         if (BR.note) { var e2 = $('#j-err2', v); if (e2) e2.textContent = BR.note + ' Upload a new file.'; }
@@ -444,6 +446,100 @@
         try { await rpc('delete_my_account'); } catch (e) { return toast(why(e), { k: 'warn' }); }
         await signOutNow(); clearMember(); m.close(); location.hash = 'join'; F('renderNav'); F('route'); toast('Your profile was deleted. You can sign up again.', { k: 'info', i: 'trash' });
       });
+    }
+
+    /* ---------- referral landing: code first, then Google, then the profile, then listed ---------- */
+    var REFKEY = 'bridges-ref';
+    function rfEsc(t) { return String(t == null ? '' : t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+    function rfNorm(t) { return String(t || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase(); }
+    function refGet() { try { var o = JSON.parse(localStorage.getItem(REFKEY) || 'null'); if (o && Date.now() - o.at < 3 * 3600 * 1000) return o; localStorage.removeItem(REFKEY); } catch (e) { /* storage blocked */ } return null; }
+    function refSet(o) { try { localStorage.setItem(REFKEY, JSON.stringify(Object.assign({ at: Date.now() }, o))); } catch (e) { /* storage blocked */ } }
+    function refClear() { try { localStorage.removeItem(REFKEY); } catch (e) { /* storage blocked */ } }
+    function refRoute() { var p = (location.hash || '').replace(/^#/, '').split('/'); if (p[0] !== 'join' || p[1] !== 'referral') return null; try { return decodeURIComponent(p[2] || ''); } catch (e) { return p[2] || ''; } }
+    function refShell(cur) {
+      var steps = ['Referral code', 'Sign in', 'Your profile', 'Listed'], pct = [6, 30, 55, 100][cur - 1], label = cur === 4 ? 'Done' : 'Step ' + cur + ' of 4';
+      var items = steps.map(function (t, i) { var n = i + 1, cls = cur > n ? 'done' : cur === n ? 'cur' : ''; return '<li class="' + cls + '"><span class="dot">' + (cls === 'done' ? F('ico', 'check', 10) : '') + '</span><span>' + rfEsc(t) + '</span></li>'; }).join('');
+      return '<div class="prog" aria-label="Sign-up progress"><div class="prog-top"><b>' + rfEsc(steps[cur - 1]) + '</b><span class="muted">' + label + '</span></div>'
+        + '<div class="track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + pct + '"><i style="--p:' + pct + '%"></i></div><ol class="steps">' + items + '</ol></div>';
+    }
+    function refHead() {
+      return '<div class="head"><span class="eyebrow">Sign up · Referral</span><h2 class="h2">Sign up with a referral</h2>'
+        + '<p class="lede">Someone from your institute vouched for you. Enter the code from your email and you skip verification.</p>'
+        + '<p class="help" style="margin-top:6px">No code? <a href="#join/alum"><b>Sign up as an alum</b></a> and verify with your certificate.</p></div>';
+    }
+    function refPage(cur, inner) { $('#v-join').innerHTML = refHead() + '<div class="wrap" style="display:grid;gap:var(--sp-l)">' + refShell(cur) + (inner || '') + '</div>'; }
+    function refFail(msg) { BR.rf = Object.assign(BR.rf || {}, { err: msg, checking: false }); F('renderJoin'); }
+    async function refCheck(code) {
+      var c = rfNorm(code);
+      if (c.length < 4) return refFail('Enter the code from your email.');
+      var res; try { res = await rpc('check_referral', { p_code: c }); } catch (e) { return refFail(why(e)); }
+      if (!res || !res.ok) return refFail('That code did not work. Check it, or ask your referrer for a new one.');
+      refSet({ code: c, kind: res.kind, inst: res.institute_id, iname: res.institute_name, ishort: res.institute_short, by: res.by || '' });
+      BR.rf = { change: false, err: '', code: '' }; F('renderJoin');
+    }
+    function refLanding(rc) {
+      var R = BR.rf = BR.rf || { change: false, err: '', code: '' }, ref = refGet();
+      if (ref && !R.change && (!rc || rfNorm(rc) === ref.code)) {
+        var kindW = ref.kind === 'student' ? 'a student' : 'an alum', who = ref.by ? rfEsc(ref.by) + ' vouched for you' : 'The Bridges team invited you';
+        refPage(2, '<div class="form" style="display:grid;gap:var(--sp-m)"><span class="pill pos" style="justify-self:start">' + F('ico', 'check', 12) + ' Code accepted</span>'
+          + '<div><h3>' + who + '</h3><p class="help" style="margin-top:4px">' + (ref.by ? rfEsc(ref.by) + ' is a verified alum of ' + rfEsc(ref.iname) + '. ' : '') + 'You\'ll be listed as ' + kindW + ' of ' + rfEsc(ref.iname) + ' and verified as soon as you finish your profile.</p></div>'
+          + F('gBtn', 'Continue with Google', 'data-jg')
+          + '<p class="help" style="text-align:center">Wrong code? <button class="lnkb" type="button" data-rf-diff>Use a different one</button></p>'
+          + '<p class="legal-l">By continuing, you agree to the <a href="#terms">Terms of use</a> and <a href="#privacy">Privacy policy</a>.</p></div>');
+        return;
+      }
+      if (rc && !R.tried && !R.change) { R.tried = true; R.checking = true; R.code = rc; refCheck(rc); }
+      refPage(1, '<form class="form" id="rf-form" novalidate style="display:grid;gap:var(--sp-s)"><div><h3>Enter your referral code</h3>'
+        + '<p class="help" style="margin-top:4px">It\'s in the email from Bridges.directory. If you opened the link in that email, it\'s already filled in.</p></div>'
+        + '<div style="display:flex;gap:var(--sp-xs);flex-wrap:wrap"><input class="input code-in" id="rf-in" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="15" placeholder="Code from your email" style="flex:1 1 200px;max-width:320px" value="' + rfEsc(R.code || rc || '') + '"'
+        + (R.err ? ' aria-invalid="true"' : '') + '><button class="btn primary" type="submit"' + (R.checking ? ' disabled' : '') + '>' + (R.checking ? 'Checking…' : 'Check code') + '</button></div>'
+        + '<p class="err" id="rf-err" role="alert">' + rfEsc(R.err || '') + '</p></form>'
+        + '<p class="alt-sw" style="text-align:center">Already have an account? <a href="#login">Log in</a></p>');
+      var inp = $('#rf-in'); if (inp && !R.checking && !('ontouchstart' in window)) inp.focus();
+    }
+    /* signed in with Google: the profile page, with the institute fixed by the referral and no "I am" switch */
+    function refProfile(ref) {
+      var J = S.join, v = $('#v-join'); if (!v) return;
+      if (J.kind !== ref.kind) { J.kind = ref.kind; if (J.d) { J.d.year = ''; J.d.open = []; } F('renderJoin'); return; }
+      var pr = $('.prog', v); if (pr) pr.outerHTML = refShell(3);
+      var eb = $('.head .eyebrow', v); if (eb) eb.textContent = 'Sign up · Referral';
+      var h2 = $('.head .h2', v); if (h2) h2.textContent = 'Sign up with a referral';
+      var lede = $('.head .lede', v); if (lede) lede.textContent = 'Your code is accepted. Finish your profile and you are listed straight away.';
+      var seg = $('[data-jk]', v); if (seg) { var row = seg.closest('.fr'); if (row) row.remove(); }
+      var sel = $('#j-inst', v);
+      if (sel) {
+        $$('option', sel).forEach(function (o) { if (o.value && o.value !== ref.inst && o.value.indexOf(ref.inst + '|') !== 0) o.remove(); });
+        $$('optgroup', sel).forEach(function (g) { if (!g.children.length) g.remove(); });
+        var real = $$('option', sel).filter(function (o) { return o.value; });
+        if (real.length === 1) {                           // only one choice: set it in the form data, then redraw so the branch list opens
+          var pt = real[0].value.split('|');
+          if (!J.d || J.d.inst !== pt[0] || (J.d.campus || '') !== (pt[1] || '')) { J.d = Object.assign({}, J.d, { inst: pt[0], campus: pt[1] || '', branch: '' }); F('renderJoin'); return; }
+          $$('option', sel).filter(function (o) { return !o.value; }).forEach(function (o) { o.remove(); });
+        }
+        var fr = sel.closest('.fr'), lh = fr && $('.lh span', fr); if (lh) lh.textContent = 'Set by your referral.';
+      }
+      var btn = $('#jf1 button[type="submit"]', v); if (btn) btn.textContent = 'Finish and get listed';
+    }
+    /* the profile is saved: use the code at once instead of showing the verification page */
+    async function refRedeem(ref) {
+      var J = S.join, v = $('#v-join'); if (!v) return;
+      v.innerHTML = refHead() + '<div class="wrap" style="display:grid;gap:var(--sp-l)">' + refShell(3) + '<p class="help">Checking your code…</p></div>';
+      if (BR.rfBusy) return;
+      BR.rfBusy = true;
+      var good = false, msg = '';
+      try { good = await rpc('redeem_referral', { p_code: ref.code }); if (!good) msg = 'That code did not work. Check it, or ask your referrer for a new one.'; } catch (e) { msg = why(e); }
+      BR.rfBusy = false; refClear();
+      if (good) { await becomeMember('You\'re listed.', 'referral'); return; }
+      J.method = 'referral'; J.code = ref.code; F('renderJoin'); joinErr(msg);
+    }
+    function refPost() {
+      var J = S.join, rc = refRoute();
+      if (S.user && rc !== null) { location.hash = 'home'; toast('You already have an account.', { k: 'info', i: 'info' }); return true; }
+      if (!J.g && J.step === 1 && !S.user) { if (rc === null) return false; refLanding(rc); return true; }
+      var ref = refGet(); if (!ref) return false;
+      if (J.step === 1 && J.g) { refProfile(ref); return true; }
+      if (J.step === 2) { refRedeem(ref); return true; }
+      return false;
     }
 
     /* ---------- directory actions ---------- */
@@ -635,6 +731,9 @@
       J.otp.at = Date.now(); F('renderJoin'); toast('Code sent to ' + J.otp.email + '.', { t: 'Check your inbox', k: 'info', i: 'mail' });
     }));
     on('click', '[data-jgo]', guard(function (e, t) { return verifyStep(t); }));
+    on('submit', '#rf-form', guard(function () { var R = BR.rf = BR.rf || {}; R.err = ''; R.checking = true; R.tried = true; R.change = false; R.code = $('#rf-in').value; F('renderJoin'); return refCheck(R.code); }));
+    on('click', '[data-rf-diff]', guard(function () { refClear(); BR.rf = { change: true, err: '', code: '', tried: true }; F('renderJoin'); }));
+    on('input', '#rf-in,#j-code', function (e, t) { t.value = t.value.toUpperCase().replace(/[^A-Z0-9 \-]/g, '').slice(0, 15); });
     on('click', '[data-jstatus]', guard(function () { return checkJoinStatus(false); }));
     on('click', '[data-jstart]', guard(startOver));
     on('click', '[data-reveal]', guard(function (e, t) { return reveal(t, e); }));

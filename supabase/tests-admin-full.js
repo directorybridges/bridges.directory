@@ -251,7 +251,7 @@ const uid = () => crypto.randomUUID();
     await as(ADMN);
     await q(`select public.admin_publish_content('home','{"h":null}'::jsonb,'Headline')`);
     ok('null puts a field back to its default', (await q(`select count(*)::int n from public.get_content() where page_id='home' and field_key='h'`)).rows[0].n === 0);
-    ok('publish history is kept', (await q(`select * from public.admin_content_history('home')`)).rows.length === 2);
+    ok('publish history is kept', (await q(`select * from public.admin_content_history('home')`)).rows.length >= 2);  // at least our two; real edits already on the live site may add more
 
     // ---------------------------------------------------------------- team
     await as(ADMN);
@@ -359,8 +359,22 @@ const uid = () => crypto.randomUUID();
     await root();
     await q(`insert into public.referrals (referrer_id, created_by, institute_id, invitee_email, kind, code_hash, expires_at) values (null,$1,'iitb','inv-stu@test.invalid','student',public.hash_code('TESTSTU1'),now()+interval '5 days')`, [MOD]);
     await q(`insert into public.referrals (referrer_id, created_by, institute_id, invitee_email, kind, code_hash, expires_at) values (null,$1,'iitb','inv-alum@test.invalid','alum',public.hash_code('TESTALM1'),now()+interval '5 days')`, [MOD]);
+    // the referral landing page: a visitor who is not signed in yet can check a code (0007)
+    await asAnon();
+    const ck = (await q(`select public.check_referral(' testalm-1 ') r`)).rows[0].r;
+    ok('landing: anon can check a code; spaces, dashes and case are ignored', ck.ok === true && ck.kind === 'alum' && ck.institute_id === 'iitb' && /IIT/.test(ck.institute_name), JSON.stringify(ck));
+    ok('landing: an admin invite shows no person name', ck.by === null || ck.by === undefined);
+    ok('landing: the check shows nothing but kind, institute and first name', Object.keys(ck).sort().join() === 'by,institute_id,institute_name,institute_short,kind,ok' || Object.keys(ck).sort().join() === 'institute_id,institute_name,institute_short,kind,ok', Object.keys(ck).join());
+    ok('landing: a wrong code says no', (await q(`select public.check_referral('NOSUCH99') r`)).rows[0].r.ok === false);
+    ok('landing: a too-short or too-long code says no', (await q(`select public.check_referral('ab') r`)).rows[0].r.ok === false && (await q(`select public.check_referral('ABCDEFGHIJKLMNOPQ') r`)).rows[0].r.ok === false);
+    await root();
+    await q(`insert into public.referral_checks select now() from generate_series(1,70)`);
+    await asAnon();
+    await expectErr('landing: too many checks in a minute are stopped', () => q(`select public.check_referral('TESTALM1')`), /too_many_attempts/);
+    await root(); await q(`delete from public.referral_checks`);
     await as(IA);
-    ok('invites: a student code does not work for an alum', (await q(`select public.redeem_referral('TESTSTU1') r`)).rows[0].r === false);
+    ok('landing: a code typed with spaces and dashes redeems nothing for the wrong type', (await q(`select public.redeem_referral('test-stu 1') r`)).rows[0].r === false);
+    ok('invites: a student code does not work for an alum',(await q(`select public.redeem_referral('TESTSTU1') r`)).rows[0].r === false);
     await as(IS);
     ok('invites: an alum code does not work for a student', (await q(`select public.redeem_referral('TESTALM1') r`)).rows[0].r === false);
     ok('invites: the right code verifies and lists a student', (await q(`select public.redeem_referral('TESTSTU1') r`)).rows[0].r === true);

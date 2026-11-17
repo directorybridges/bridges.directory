@@ -6,6 +6,7 @@
 - **Email**: Resend, called from the database (`send_email`). The Resend key is stored in Supabase Vault, not in the repo.
 - **Certificates**: today stored in the database. The private Cloudflare R2 version is in `worker/` (see `worker/README.md`) and switches on by filling `certWorkerUrl` in `bridges-config.js`.
 - **Home banner**: the animated globe (`hero-globe.js` and `fonts/`). It rebuilds itself from the home page, so a new design file does not remove it.
+- **Referral sign-up**: the emailed link opens `#join/referral/CODE` (code first, then Google, then profile, then listed). It lives in `bridges-backend.js` and the database function `check_referral` (`supabase/0007_referral_landing.sql`). Codes are 8 characters; the box accepts up to 15 and ignores spaces, dashes and case.
 - **Daily clean-up**: a database job (`bridges-daily-cleanup`, 02:00 IST) deletes expired certificates, old codes and expired invites.
 
 ## Everyday jobs
