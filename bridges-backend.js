@@ -419,7 +419,7 @@
     /* anything after the prototype drew the join page */
     function postJoin() {
       var J = S.join, v = $('#v-join'); if (!v) return;
-      if (refPost()) return;
+      if (refPost() || kindPost()) return;
       var jc = $('#j-code', v); if (jc) { jc.maxLength = 15; jc.placeholder = 'Code from your email'; }
       if (J.step === 2) {
         var back = $('[data-jback]', v); if (back) back.remove();
@@ -539,6 +539,55 @@
       var ref = refGet(); if (!ref) return false;
       if (J.step === 1 && J.g) { refProfile(ref); return true; }
       if (J.step === 2) { refRedeem(ref); return true; }
+      return false;
+    }
+
+    /* ---------- sign-up chooser and separate student / alum pages (no "I am" switch) ---------- */
+    var KINDKEY = 'bridges-kind';
+    function kindGet() { try { var o = JSON.parse(localStorage.getItem(KINDKEY) || 'null'); if (o && Date.now() - o.at < 3 * 3600 * 1000 && (o.k === 'student' || o.k === 'alum')) return o.k; localStorage.removeItem(KINDKEY); } catch (e) { /* storage blocked */ } return null; }
+    function kindSet(k) { try { localStorage.setItem(KINDKEY, JSON.stringify({ k: k, at: Date.now() })); } catch (e) { /* storage blocked */ } }
+    var kindCss = document.createElement('style');
+    kindCss.textContent = '.kcards{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-m);max-width:760px}'
+      + '.kcard{display:grid;gap:var(--sp-s);align-content:start;padding:var(--sp-l);background:var(--surface);border:1px solid var(--line);border-radius:12px;color:var(--ink);text-decoration:none;transition:border-color .2s,transform .2s}'
+      + '.kcard:hover{border-color:var(--line-strong);transform:translateY(-1px)}.kcard:focus-visible{outline:2px solid var(--ring);outline-offset:2px}'
+      + '.kcard .kic{display:grid;place-items:center;width:40px;height:40px;border-radius:10px;background:var(--fill);color:var(--ink)}'
+      + '.kcard h3{font-size:1.0625rem}.kcard p{color:var(--ink-2);font-size:.9375rem;line-height:1.5}'
+      + '.kcard .kv{display:flex;align-items:center;gap:8px;padding-top:var(--sp-s);border-top:1px solid var(--line);color:var(--muted);font-size:.8125rem}'
+      + '.kcard .kgo{display:inline-flex;align-items:center;gap:6px;font-weight:600;font-size:.9375rem}'
+      + '.kref{display:flex;align-items:center;gap:var(--sp-s);max-width:760px;padding:var(--sp-s) var(--sp-m);background:var(--fill);border:1px solid var(--line);border-radius:12px;color:var(--ink-2);text-decoration:none;font-size:.9375rem}'
+      + '.kref:hover{border-color:var(--line-strong)}.kref b{color:var(--ink)}.kref .kr-go{margin-left:auto;display:inline-flex}'
+      + '.ksw{color:var(--ink-2);font-size:.9375rem}.ksw a{color:var(--ink);font-weight:600;text-underline-offset:3px}'
+      + '@media (max-width:640px){.kcards{grid-template-columns:1fr}}';
+    document.head.appendChild(kindCss);
+    function kindHead(k) {
+      var v = $('#v-join'), hd = $('.head', v); if (!hd) return;
+      var stu = k === 'student';
+      hd.innerHTML = '<span class="eyebrow">Sign up · ' + (stu ? 'Student' : 'Alum') + '</span><h2 class="h2">Sign up as ' + (stu ? 'a student' : 'an alum') + '</h2>'
+        + '<p class="lede">' + (stu ? 'For people studying at a listed institute right now. You\'ll verify with your institute email.' : 'For people who graduated from a listed institute. You\'ll verify with your degree certificate, or a referral code from an alum.') + '</p>'
+        + '<p class="ksw">' + (stu ? 'Graduated already? <a href="#join/alum">Sign up as an alum</a>' : 'Still studying? <a href="#join/student">Sign up as a student</a> · Got a referral code? <a href="#join/referral">Use it here</a>') + '</p>';
+    }
+    function kindChooser() {
+      $('#v-join').innerHTML = '<div class="head"><span class="eyebrow">Sign up</span><h2 class="h2">Join Bridges.directory</h2><p class="lede">Are you studying now, or have you graduated? It decides how we verify you, so pick the one that fits.</p></div>'
+        + '<div class="wrap" style="display:grid;gap:var(--sp-l)"><div class="kcards">'
+        + '<a class="kcard" href="#join/student"><span class="kic">' + F('ico', 'book', 20) + '</span><div><h3>I\'m a current student</h3><p>I study at an NID, NIFT, IIT or another listed institute right now.</p></div><span class="kv">' + F('ico', 'check', 14) + ' Verify with your institute email</span><span class="kgo">Sign up as a student ' + F('ico', 'right', 14) + '</span></a>'
+        + '<a class="kcard" href="#join/alum"><span class="kic">' + F('ico', 'campus', 20) + '</span><div><h3>I\'m an alum</h3><p>I graduated from a listed institute, in any year.</p></div><span class="kv">' + F('ico', 'check', 14) + ' Verify with a certificate or a referral code</span><span class="kgo">Sign up as an alum ' + F('ico', 'right', 14) + '</span></a></div>'
+        + '<a class="kref" href="#join/referral">' + F('ico', 'key', 16) + '<span><b>Got a referral code?</b> An alum emailed you a code. Sign up with it and you\'re verified straight away.</span><span class="kr-go">' + F('ico', 'right', 14) + '</span></a>'
+        + '<p class="alt-sw" style="text-align:left">Already have an account? <a href="#login">Log in</a></p>'
+        + '<p class="legal-l gstart-f">' + F('ico', 'key', 14) + '<span>Faculty accounts are set up by the Bridges team. <a href="#login" data-tofac>Faculty sign-in</a></span></p></div>';
+    }
+    /* runs after the prototype drew the join page; true = this function drew everything */
+    function kindPost() {
+      var J = S.join, v = $('#v-join'), arg = X('parse')().arg;
+      if (!v || S.user || J.step !== 1) return false;
+      if (!J.g) {
+        refClear();                                   // a half-finished referral must not follow someone who chose the normal way
+        if (arg === 'student' || arg === 'alum') { J.kind = arg; J._k = arg; kindSet(arg); kindHead(arg); return false; }
+        kindChooser(); return true;
+      }
+      var k = (arg === 'student' || arg === 'alum') ? arg : (kindGet() || J.kind);
+      if (J.kind !== k || (J._k && J._k !== k)) { J.kind = k; J._k = k; if (J.d) { J.d.year = ''; J.d.open = []; } F('renderJoin'); return true; }
+      J._k = k; kindSet(k); kindHead(k);
+      var seg = $('[data-jk]', v); if (seg) { var row = seg.closest('.fr'); if (row) row.remove(); }
       return false;
     }
 
