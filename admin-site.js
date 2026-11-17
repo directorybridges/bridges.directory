@@ -119,7 +119,8 @@
       loadTeam().then(function () { if (ST.view === 'roles') renderRoles(); }, A.fail);
       return;
     }
-    var can = A.can('team'), ROLES = A.ROLES, lim = (ST.ov && ST.ov.limit) || 5;
+    var can = A.can('team'), ROLES = A.ROLES, ov = ST.ov || {}, per = ov.period === 'day' ? 'a day' : 'a week', rl = ov.role_limits || {};
+    var lim = function (role) { var n = rl[role] != null ? rl[role] : (ov.limit || 5); return n + ' contact' + (n === 1 ? '' : 's') + ' ' + per; };
     var pill = function (r) { return '<span class="pill' + (r === 'Owner' ? ' fac' : '') + '">' + r + '</span>'; };
     A.view().innerHTML = ph('Roles and permissions', 'Who is on the team and what each role can do. "Preview the admin as" in the menu shows the admin through a role\'s eyes.', can ? '<button class="btn primary" type="button" id="tInv">' + ico('uplus', 16) + 'Invite a teammate</button>' : '') +
       '<section class="card"><div class="card-h"><h3>Team</h3><span class="sub">' + T.rows.length + ' people</span></div><div class="tbl" style="--cols:minmax(200px,2fr) 170px 120px 40px;--cols-m:minmax(0,1fr) auto"><div class="tr th"><span>Name</span><span>Role</span><span>Last active</span><span></span></div>' +
@@ -134,9 +135,9 @@
         return '<tr><td>' + pm[1] + '</td>' + ROLES.map(function (r) { return '<td><input type="checkbox" data-perm="' + r + '|' + pm[0] + '" aria-label="' + r + ': ' + pm[1] + '"' + (r === 'Owner' || (ST.matrix[r] && ST.matrix[r][pm[0]]) ? ' checked' : '') + (r === 'Owner' || !can ? ' disabled' : '') + '></td>'; }).join('') + '</tr>';
       }).join('') + '</tbody></table></div></section>' +
       '<section class="card"><div class="card-h"><h3>What members can do</h3><span class="sub">Set by the site\'s rules</span></div><div class="card-b rules">' +
-      '<div>' + A.kindPill('student') + '<ul><li>Sign in with Google, verify with an institute email code or a certificate</li><li>Browse and open ' + lim + ' contacts a week</li><li>Volunteer to check certificates</li><li>Edit their own profile</li></ul></div>' +
-      '<div>' + A.kindPill('alum') + '<ul><li>Sign in with Google, verify with a certificate or a referral code</li><li>Browse and open ' + lim + ' contacts a week</li><li>Refer other alumni from their institute</li><li>Edit their own profile</li></ul></div>' +
-      '<div>' + A.kindPill('faculty') + '<ul><li>Sign in with an ID and password from the team</li><li>Browse and open ' + lim + ' contacts a week</li><li>Never listed in the directory</li><li>Cannot edit their profile or password</li></ul></div></div></section>';
+      '<div>' + A.kindPill('student') + '<ul><li>Sign in with Google, verify with an institute email code or a certificate</li><li>Browse and open ' + lim('student') + '</li><li>Volunteer to check certificates (they can open ' + lim('volunteer') + ')</li><li>Edit their own profile</li></ul></div>' +
+      '<div>' + A.kindPill('alum') + '<ul><li>Sign in with Google, verify with a certificate or a referral code</li><li>Browse and open ' + lim('alum') + '</li><li>Refer other alumni from their institute</li><li>Edit their own profile</li></ul></div>' +
+      '<div>' + A.kindPill('faculty') + '<ul><li>Sign in with an ID and password from the team</li><li>Browse and open ' + lim('faculty') + '</li><li>Never listed in the directory</li><li>Cannot edit their profile or password</li></ul></div></div></section>';
     var byKey = function (k) { return T.rows.filter(function (t) { return (t.user_id || ('inv:' + t.email)) === k; })[0]; };
     var reload = function () { T.rows = null; A.refreshCounts(); if (ST.view === 'roles') renderRoles(); };
     if ($('#tInv')) $('#tInv').addEventListener('click', function () {
@@ -176,6 +177,8 @@
 
   /* ------------------------------------------------------------------ settings */
   var G = { cur: null };
+  var RL = [['volunteer', 'Volunteers'], ['student', 'Students'], ['alum', 'Alumni'], ['faculty', 'Faculty']];
+  (function () { var st = document.createElement('style'); st.textContent = '.rls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;max-width:420px}.rls label{display:grid;gap:4px;font-size:.875rem}.rls .help{grid-column:1/-1}'; document.head.appendChild(st); })();
   function renderSettings() {
     if (G.cur === null) {
       A.view().innerHTML = '<div class="empty"><span>Loading…</span></div>';
@@ -186,18 +189,27 @@
     var row = function (t, p, ctl) { return '<div class="set"><div><b>' + t + '</b><p class="help">' + p + '</p></div><div class="ctl">' + ctl + '</div></div>'; };
     A.view().innerHTML = ph('Settings', 'Rules that apply across Bridges.directory.') +
       '<section class="card">' +
-      row('Contacts per week', 'How many contacts each member can open in a week. You can change it for one person from their profile.', '<input class="input" id="s-limit" type="number" min="1" max="30" value="' + s.limit + '" style="max-width:120px">') +
+      row('Contact limit', 'How many contacts each member can open, per day or per week. A day resets at midnight and a week on Monday, India time. Change it for a role below, or for one person from their profile.', '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><input class="input" id="s-limit" type="number" min="1" max="500" step="1" value="' + s.limit + '" style="max-width:110px" aria-label="Contacts"><div class="seg" role="group" aria-label="Per">' + [['day', 'Per day'], ['week', 'Per week']].map(function (x) { return '<button type="button" data-pd="' + x[0] + '" aria-pressed="' + (s.period === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div></div>') +
+      row('Limits by role', 'Give a role its own number. Leave a box empty to use the site limit above. A personal limit set on a profile beats the role. A student who is also a volunteer uses the Volunteers number.', '<div class="rls">' + RL.map(function (r) { return '<label><span>' + r[1] + '</span><input class="input" type="number" min="0" max="500" step="1" data-rl="' + r[0] + '" placeholder="' + s.limit + '" value="' + (s.role_limits[r[0]] == null ? '' : s.role_limits[r[0]]) + '" aria-label="' + r[1] + ', contacts ' + (s.period === 'day' ? 'per day' : 'per week') + '"></label>'; }).join('') + '<small class="help" id="s-rlp"></small></div>') +
       row('Volunteer approvals', 'How many volunteers must approve a certificate before someone is listed. An admin can always approve on their own.', '<div class="seg" role="group" aria-label="Approvals needed">' + [1, 2, 3].map(function (n) { return '<button type="button" data-ap="' + n + '" aria-pressed="' + (s.approvals === n) + '">' + n + '</button>'; }).join('') + '</div>') +
       row('Institute emails for codes', 'Students with an address on these domains can verify with a 6-digit code. Turn one off to send that institute\'s students to certificate checks instead.', '<div class="doms">' + ST.instRows.map(function (i) { return '<label><span><b style="font-weight:500">' + esc(i.short) + '</b> <code>@' + esc(i.email_domain) + '</code></span><span class="tgl" style="flex:none"><input type="checkbox" data-dom="' + esc(i.id) + '" aria-label="' + esc(i.short) + '"' + (s.domains[i.id] !== false ? ' checked' : '') + '></span></label>'; }).join('') + '</div>') +
       row('Sign-ups', 'Pause new sign-ups without affecting existing members.', '<label class="tgl"><span><b>Open for new members</b></span><input type="checkbox" id="s-su"' + (s.signups ? ' checked' : '') + '></label><textarea class="input" id="s-pm" rows="2" maxlength="300" aria-label="Message while paused"' + (s.signups ? ' hidden' : '') + '>' + esc(s.pause_msg) + '</textarea>') +
       row('Site notice', 'A short message at the top of every page, for maintenance or news.', '<label class="tgl"><span><b>Show a notice</b></span><input type="checkbox" id="s-bn"' + (s.banner_on ? ' checked' : '') + '></label><input class="input" id="s-bm" maxlength="300" placeholder="e.g. Bridges will be down for 10 minutes at 11 pm tonight." value="' + esc(s.banner_msg) + '"' + (s.banner_on ? '' : ' hidden') + '>') +
       row('Yearly contribution goal', 'Shown on the Contribute page and the home tile.', '<div style="display:flex;align-items:center;gap:8px"><span class="muted">₹</span><input class="input" id="s-goal" type="number" min="0" step="500" value="' + s.goal + '" style="max-width:160px"></div>') +
       '<div class="savebar"><span class="help" id="s-n">No unsaved changes</span><button class="btn primary" type="button" id="s-save" disabled>Save settings</button></div></section>';
-    if (!E) $$('#view input,#view textarea,#view [data-ap],#s-save').forEach(function (i) { i.disabled = true; });
-    var label = { limit: 'Contacts per week', approvals: 'Volunteer approvals', domains: 'Institute emails', signups: 'Sign-ups', pause_msg: 'Pause message', banner_on: 'Site notice', banner_msg: 'Notice text', goal: 'Contribution goal' };
+    if (!E) $$('#view input,#view textarea,#view [data-ap],#view [data-pd],#s-save').forEach(function (i) { i.disabled = true; });
+    var label = { limit: 'Contact limit', period: 'Contact limit period', role_limits: 'Contact limits by role', approvals: 'Volunteer approvals', domains: 'Institute emails', signups: 'Sign-ups', pause_msg: 'Pause message', banner_on: 'Site notice', banner_msg: 'Notice text', goal: 'Contribution goal' };
     var diff = function () { return Object.keys(label).filter(function (k) { return JSON.stringify(s[k]) !== JSON.stringify(G.cur[k]); }); };
     var upd = function () { var n = diff().length; $('#s-n').textContent = n ? n + ' unsaved change' + (n === 1 ? '' : 's') : 'No unsaved changes'; $('#s-save').disabled = !n || !E; };
-    $('#s-limit').addEventListener('input', function (e) { s.limit = Math.max(1, Math.min(30, +e.target.value || 1)); upd(); });
+    var rlNote = function () { $('#s-rlp').textContent = (s.period === 'day' ? 'Contacts per day' : 'Contacts per week') + '. Empty = same as the site limit (' + s.limit + ').'; $$('[data-rl]').forEach(function (i) { i.placeholder = s.limit; }); };
+    rlNote();
+    $('#s-limit').addEventListener('input', function (e) { var raw = e.target.value; s.limit = Math.max(1, Math.min(500, Math.round(+raw) || 1)); rlNote(); upd(); });
+    $('#s-limit').addEventListener('change', function (e) { e.target.value = s.limit; });
+    $$('[data-pd]').forEach(function (b) { b.addEventListener('click', function () { s.period = b.dataset.pd; $$('[data-pd]').forEach(function (x) { x.setAttribute('aria-pressed', x === b); }); rlNote(); upd(); }); });
+    $$('[data-rl]').forEach(function (i) {
+      i.addEventListener('input', function () { var v = i.value.trim(); s.role_limits[i.dataset.rl] = v === '' ? null : Math.max(0, Math.min(500, Math.round(+v) || 0)); upd(); });
+      i.addEventListener('change', function () { var n = s.role_limits[i.dataset.rl]; i.value = n == null ? '' : n; });
+    });
     $$('[data-ap]').forEach(function (b) { b.addEventListener('click', function () { s.approvals = +b.dataset.ap; $$('[data-ap]').forEach(function (x) { x.setAttribute('aria-pressed', x === b); }); upd(); }); });
     $$('[data-dom]').forEach(function (c) { c.addEventListener('change', function () { s.domains[c.dataset.dom] = c.checked; upd(); }); });
     $('#s-su').addEventListener('change', function (e) { s.signups = e.target.checked; $('#s-pm').hidden = s.signups; upd(); });

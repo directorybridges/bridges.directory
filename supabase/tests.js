@@ -120,7 +120,10 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR
     const d2 = (await q(`select extract(epoch from (delete_after - now()))/86400 d, status from public.verification_requests where id = $1`, [rid2])).rows[0];
     ok('rejected file scheduled for deletion in 30 days', d2.status === 'rejected' && d2.d > 29.9 && d2.d < 30.1, JSON.stringify(d2));
 
-    // ---- 5. contacts
+    // ---- 5. contacts (the site number may have been changed in the admin, so fix it to 5 inside this rolled-back test)
+    await root();
+    await q(`update public.settings set value = '5' where key = 'weekly_contacts'`);
+    await q(`update public.settings set value = 'week' where key = 'contact_period'`);
     await as(S);
     for (let i = 0; i < 5; i++) await q('select public.reveal_contact($1)', [targets[i]]);
     ok('5 contacts opened', (await q('select public.contacts_left() n')).rows[0].n === 0);

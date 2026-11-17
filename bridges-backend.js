@@ -151,6 +151,7 @@
       return { row: row, priv: priv, vapp: vapp };
     }
     async function loadSettings() {
+      try { clApply(await rpc('my_contact_limit')); return; } catch (e) { /* older database: fall back to the site number below */ }
       try { var rows = ok(await sb.from('settings').select('key,value')); rows.forEach(function (r) { if (r.key === 'weekly_contacts') S.limit = +r.value || S.limit; }); } catch (e) {}
     }
     function makeReveals(week, old) {
@@ -182,6 +183,7 @@
         var p = mapRow(r), c = BR.contacts[r.id]; if (c) { p.cemail = c.email; p.links = c.links; }
         people.push(p);
       });
+      await loadAlts();
       BR.peopleAt = Date.now(); BR.dirVer = ver;
       try { (await rpc('institute_counts')).forEach(function (c) { BR.counts[c.institute_id] = { alums: +c.alums, students: +c.students }; }); } catch (e) {}
     }
@@ -218,7 +220,7 @@
       await loadSettings();
       await loadContacts();
       await loadDirectory();
-      await Promise.all([loadRefs().catch(function () {}), loadFund().catch(function () {}), loadQueue().catch(function () {})]);
+      await Promise.all([loadRefs().catch(function () {}), loadFund().catch(function () {}), loadQueue().catch(function () {}), loadInsts().catch(function () {})]);
     }
 
     /* ---------- who is signed in, and what do they need to do next ---------- */
@@ -591,6 +593,239 @@
       return false;
     }
 
+    /* ---------- more than one institute: add, verify, show (Master's / PhD at another institute) ---------- */
+    Object.assign(ERR, { verify_first: 'Finish verifying your first institute before adding another.', already_added: 'You have already added that institute.', too_many_institutes: 'You can add up to 5 more institutes.',
+      bad_branch: 'Choose your branch.', bad_year: 'Choose a valid year.', bad_kind: 'Choose whether you study there now or studied there.' });
+    var aiCss = document.createElement('style');
+    aiCss.textContent = '.ai-l{display:grid;gap:0;list-style:none;padding:0;margin:0}.ai-r{display:grid;gap:6px;padding:var(--sp-s) 0;border-top:1px solid var(--line)}.ai-r:first-child{border-top:0;padding-top:0}'
+      + '.ai-t{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.ai-t b{font-size:.9375rem}.ai-m{color:var(--muted);font-size:.8125rem}.ai-a{display:flex;gap:8px;flex-wrap:wrap;align-items:center}'
+      + '.ai-f{display:grid;gap:var(--sp-s)}.ai-f>div{display:grid;gap:6px}.ai-f .checks{display:grid;gap:8px}.ai-ms{display:flex;gap:8px;flex-wrap:wrap}'
+      + '.pc-also{color:var(--ink-2);font-size:.8125rem;line-height:1.5;padding:0 0 var(--sp-s)}.pc-also b{color:var(--ink)}';
+    document.head.appendChild(aiCss);
+    var aiEsc = function (t) { return F('esc', t == null ? '' : String(t)); };
+    function aiName(x) { var I = IB[x.inst]; return I ? I.s + (x.campus ? ' ' + x.campus : '') : x.inst; }
+    function aiLabel(x) { return aiName(x) + ' · ' + (x.kind === 'student' ? 'Student' : 'Alum'); }
+    async function loadInsts() {
+      var me = S.user; if (!me) return;
+      if (me.kind === 'faculty') { me.insts = []; return; }
+      var rows = (await rpc('my_institutes')) || [];
+      me.insts = rows.map(function (r) { return { id: r.id, inst: r.institute_id, campus: r.campus || '', branch: r.branch, year: r.year, kind: r.kind, verified: !!r.verified, method: r.verify_method, rs: r.request_status, rr: r.request_reason }; });
+    }
+    /* each listed person also carries their verified extra institutes (p.alt); the directory then finds them under each one */
+    async function loadAlts() {
+      var rows = []; try { rows = (await rpc('directory_institutes')) || []; } catch (e) { rows = []; }
+      var by = {}; people.forEach(function (p) { p.alt = []; by[p.id] = p; });
+      rows.forEach(function (r) { var p = by[r.profile_id]; if (p && IB[r.institute_id]) p.alt.push({ inst: r.institute_id, campus: r.campus || '', branch: r.branch, year: r.year || 0, kind: r.kind }); });
+    }
+    var aiMain = function (p) { return { inst: p.inst, campus: p.campus, branch: p.branch, year: p.year, kind: p.kind }; };
+    /* the directory: someone who matches the filter only through an extra institute is shown as that institute while the list is drawn */
+    (function () {
+      var origList = X('renderList'), pass = X('pass'), origPanel = X('panelHtml');
+      setFn('renderList', function () {
+        var sw = [];
+        try {
+          people.forEach(function (p) {
+            if (!p.alt || !p.alt.length || pass(p, S.f, S.q)) return;
+            for (var i = 0; i < p.alt.length; i++) {
+              if (pass(Object.assign({}, p, p.alt[i]), S.f, S.q)) { var m = aiMain(p); sw.push([p, m]); p._main = m; Object.assign(p, p.alt[i]); break; }
+            }
+          });
+          return origList.apply(null, arguments);
+        } finally { sw.forEach(function (x) { Object.assign(x[0], x[1]); delete x[0]._main; }); }
+      });
+      setFn('panelHtml', function (p) {
+        var h = origPanel.apply(null, arguments);
+        try {
+          var all = [p._main || aiMain(p)].concat(p.alt || []).filter(function (x) { return !(x.inst === p.inst && (x.campus || '') === (p.campus || '') && x.kind === p.kind); });
+          if (all.length && h.indexOf('<div class="pc-cols">') >= 0) {
+            h = h.replace('<div class="pc-cols">', function () { return '<p class="pc-also"><b>Also:</b> ' + all.map(function (x) { return aiEsc(aiLabel(x) + (x.branch ? ' · ' + x.branch : '')); }).join(' · ') + '</p><div class="pc-cols">'; });
+          }
+        } catch (e) { console.error('[bridges] panel', e); }
+        return h;
+      });
+    })();
+
+    /* my profile: the list of my institutes */
+    function aiState(L) {
+      if (L.verified) return '<span class="pill pos">' + F('ico', 'check', 12) + ' Verified</span>';
+      if (L.rs === 'pending') return '<span class="pill">With the volunteers</span>';
+      return '<span class="pill">Not verified yet</span>';
+    }
+    function aiCard(u) {
+      var ls = u.insts || [], main = { inst: u.inst, campus: u.campus, branch: u.branch, year: u.year, kind: u.kind };
+      var h = '<div class="side-card" id="ai-card"><h3>Your institutes</h3><ul class="ai-l">'
+        + '<li class="ai-r"><div class="ai-t"><b>' + aiEsc(aiName(main)) + '</b><span class="pill ' + (main.kind === 'student' ? 'stu' : 'alum') + '">' + (main.kind === 'student' ? 'Student' : 'Alum') + '</span><span class="pill pos">' + F('ico', 'check', 12) + ' Verified</span></div><span class="ai-m">' + aiEsc(main.branch) + ' · ' + (main.kind === 'student' ? 'graduating ' : 'batch of ') + aiEsc(main.year) + ' · main institute</span>'
+        + (u.kind === 'alum' ? '<div class="ai-a"><a class="btn ghost sm" href="#refer" data-ai-refer="' + aiEsc(main.inst) + '">' + F('ico', 'uplus', 14) + 'Refer someone</a></div>' : '') + '</li>';
+      ls.forEach(function (L) {
+        var rej = !L.verified && L.rs === 'rejected', pend = !L.verified && L.rs === 'pending';
+        h += '<li class="ai-r"><div class="ai-t"><b>' + aiEsc(aiName(L)) + '</b><span class="pill ' + (L.kind === 'student' ? 'stu' : 'alum') + '">' + (L.kind === 'student' ? 'Student' : 'Alum') + '</span>' + aiState(L) + '</div>'
+          + '<span class="ai-m">' + aiEsc(L.branch) + ' · ' + (L.kind === 'student' ? 'graduating ' : 'batch of ') + aiEsc(L.year) + (L.verified ? '' : pend ? ' · two volunteers are checking your certificate' : rej ? ' · your last certificate was not approved' : ' · not shown in the directory until verified') + '</span>'
+          + '<div class="ai-a">' + (L.verified ? (L.kind === 'alum' ? '<a class="btn ghost sm" href="#refer" data-ai-refer="' + aiEsc(L.inst) + '">' + F('ico', 'uplus', 14) + 'Refer someone</a>' : '') : pend ? '' : '<button class="btn secondary sm" type="button" data-ai-verify="' + aiEsc(L.id) + '">Verify</button>')
+          + '<button class="btn ghost sm" type="button" data-ai-remove="' + aiEsc(L.id) + '">Remove</button></div></li>';
+      });
+      h += '</ul>' + (ls.length < 5 ? '<button class="btn secondary sm" type="button" data-ai-add style="justify-self:start">' + F('ico', 'plus', 14) + 'Add another institute</button>' : '')
+        + '<p class="help">Did a Master\'s or PhD somewhere else? Add it here. You can be a student at one institute and an alum at another. Each one is verified on its own.</p></div>';
+      return h;
+    }
+    wrap('renderProfile', function () {
+      var u = S.user, v = $('#v-profile'); if (!u || u.kind === 'faculty' || !v) return;
+      var side = $('.pgrid > div:last-child .side-card', v); if (!side || $('#ai-card', v)) return;
+      if (!u.insts) { u.insts = []; loadInsts().then(function () { if (X('parse')().v === 'profile') F('renderProfile'); }).catch(function () {}); return; }
+      side.insertAdjacentHTML('afterend', aiCard(u));
+    });
+    async function aiRefresh(then) {
+      await loadInsts(); await loadDirectory(); BR.peopleAt = Date.now();
+      if (X('parse')().v === 'profile') F('renderProfile'); else if (X('parse')().v === 'directory') F('refreshDir');
+      F('renderNav'); if (then) then();
+    }
+
+    /* add an institute */
+    var aiYears = function (kind) {
+      var T = X('THIS_YEAR'), ys = []; if (kind === 'student') { for (var y = T; y <= T + 7; y++) ys.push(y); } else { for (var z = T; z >= 1980; z--) ys.push(z); }
+      return '<option value="">' + (kind === 'student' ? 'Expected year' : 'Year you graduated') + '</option>' + ys.map(function (y) { return '<option>' + y + '</option>'; }).join('');
+    };
+    function openAdd() {
+      var u = S.user; if (!u) return;
+      var m = F('modal', F('mdHead', 'Add another institute', 'For example a Master\'s or PhD at a different institute.')
+        + '<form class="ai-f" id="ai-f" novalidate>'
+        + '<div><span class="label" style="margin:0">Your status there</span><div class="checks"><label><input type="radio" name="ai-k" value="student" checked> I study here now</label><label><input type="radio" name="ai-k" value="alum"> I studied here (alum)</label></div></div>'
+        + '<div><label class="label" for="ai-inst" style="margin:0">Institute</label>' + F('selWrap', '<select class="input" id="ai-inst">' + F('instOptions', '', 'Choose an institute') + '</select>') + '</div>'
+        + '<div class="two" style="display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-s)"><div style="display:grid;gap:6px"><label class="label" for="ai-branch" style="margin:0">Branch</label>' + F('selWrap', '<select class="input" id="ai-branch" disabled><option value="">Pick institute first</option></select>') + '</div>'
+        + '<div style="display:grid;gap:6px"><label class="label" for="ai-year" style="margin:0">Year</label>' + F('selWrap', '<select class="input" id="ai-year">' + aiYears('student') + '</select>') + '</div></div>'
+        + '<p class="err" id="ai-err" role="alert"></p>'
+        + '<div class="md-f"><button class="btn primary" type="submit">Add and verify</button><button class="btn ghost" type="button" data-mclose>Cancel</button></div></form>', 'Add another institute');
+      var kindNow = function () { var r = $('input[name="ai-k"]:checked', m); return r ? r.value : 'student'; };
+      m.addEventListener('change', function (e) {
+        if (e.target.id === 'ai-inst') {
+          var x = String(e.target.value || '').split('|'), I = IB[x[0]], br = $('#ai-branch', m);
+          br.innerHTML = I ? '<option value="">Branch</option>' + I.br.map(function (b) { return '<option>' + aiEsc(b) + '</option>'; }).join('') : '<option value="">Pick institute first</option>'; br.disabled = !I;
+        } else if (e.target.name === 'ai-k') { $('#ai-year', m).innerHTML = aiYears(kindNow()); }
+      });
+      m.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var err = $('#ai-err', m), x = String($('#ai-inst', m).value || '').split('|'), b = $('#ai-branch', m).value, y = $('#ai-year', m).value, btn = $('button[type="submit"]', m);
+        if (!x[0]) { err.textContent = 'Choose an institute.'; return; }
+        if (!b) { err.textContent = 'Choose your branch.'; return; }
+        if (!y) { err.textContent = 'Choose your year.'; return; }
+        btn.disabled = true; err.textContent = '';
+        rpc('add_my_institute', { p: { institute_id: x[0], campus: x[1] || '', branch: b, year: +y, kind: kindNow() } }).then(function (id) {
+          return loadInsts().then(function () { if (X('parse')().v === 'profile') F('renderProfile'); var L = (S.user.insts || []).filter(function (q) { return q.id === id; })[0]; if (L) aiVerifyUI(m, L); else m.close(); });
+        }).catch(function (x2) { btn.disabled = false; err.textContent = why(x2); });
+      });
+    }
+
+    /* verify an added institute: institute email, certificate, or a referral code */
+    function aiVerifyHtml(L, st) {
+      var I = IB[L.inst], mth = st.method, btnM = function (k, t) { return '<button class="btn ' + (mth === k ? 'primary' : 'secondary') + ' sm" type="button" data-ai-m="' + k + '">' + t + '</button>'; }, body;
+      if (mth === 'email') {
+        body = st.sent
+          ? '<p class="help">We sent a 6-digit code to ' + aiEsc(st.email) + '. It works for 10 minutes.</p><div style="display:flex;gap:8px;flex-wrap:wrap"><input class="input" id="ai-code" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="6-digit code" style="max-width:180px"><button class="btn primary" type="button" data-ai-go>Verify</button><button class="btn ghost" type="button" data-ai-again>Use another address</button></div>'
+          : '<label class="label" for="ai-em" style="margin:0">Your ' + aiEsc(I.s) + ' email</label><div style="display:flex;gap:8px;flex-wrap:wrap"><input class="input" id="ai-em" type="email" placeholder="you@' + aiEsc(I.d) + '" style="flex:1 1 220px"><button class="btn primary" type="button" data-ai-go>Send code</button></div><p class="help">Works if you still have an address at ' + aiEsc(I.d) + '.</p>';
+      } else if (mth === 'upload') {
+        body = '<p class="help">Upload your certificate. You hide the private parts before it is sent, and two volunteers check the rest.</p><input class="input" id="ai-file" type="file" accept="image/png,image/jpeg,image/webp,image/*">'
+          + '<label class="checks" style="display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="ai-consent"> <span class="help">I am happy for two volunteers to check it. The file is deleted once they decide.</span></label><div><button class="btn primary" type="button" data-ai-go>Hide details and send</button></div>';
+      } else {
+        body = '<p class="help">If a verified alum of ' + aiEsc(I.s) + ' referred you, enter the code from your email.</p><div style="display:flex;gap:8px;flex-wrap:wrap"><input class="input code-in" id="ai-ref" maxlength="15" autocomplete="off" autocapitalize="characters" placeholder="Code from your email" style="flex:1 1 200px;max-width:300px"><button class="btn primary" type="button" data-ai-go>Use code</button></div>';
+      }
+      return F('mdHead', 'Verify ' + aiEsc(aiName(L)), (L.kind === 'student' ? 'Prove you study here.' : 'Prove you studied here.') + ' Until then it is not shown in the directory.')
+        + '<div class="ai-f"><div class="ai-ms">' + btnM('email', 'Institute email') + btnM('upload', 'Certificate') + btnM('referral', 'Referral code') + '</div>' + body + '<p class="err" id="ai-err2" role="alert"></p>'
+        + '<div class="md-f"><button class="btn ghost" type="button" data-mclose>Not now</button></div></div>';
+    }
+    function aiVerifyUI(m, L) {
+      var st = { method: L.kind === 'student' ? 'email' : 'upload', sent: false, email: '' };
+      m.set(aiVerifyHtml(L, st));
+      var err = function (t) { var e = $('#ai-err2', m); if (e) e.textContent = t || ''; };
+      var redraw = function () { m.set(aiVerifyHtml(L, st)); };
+      var done = async function (msg) { await aiRefresh(); m.close(); toast(msg, { t: 'Verified' }); };
+      m.onclick = null;
+      m.addEventListener('click', async function (e) {
+        var t = e.target.closest('[data-ai-m],[data-ai-go],[data-ai-again]'); if (!t) return;
+        if (t.dataset.aiM) { st.method = t.dataset.aiM; st.sent = false; redraw(); return; }
+        if (t.hasAttribute('data-ai-again')) { st.sent = false; redraw(); return; }
+        err(''); t.disabled = true;
+        try {
+          if (st.method === 'email') {
+            if (!st.sent) {
+              var em = ($('#ai-em', m).value || '').trim().toLowerCase();
+              if (!em || !F('validEmail', em) || !F('domainOk', em, L.inst)) { t.disabled = false; return err('Use your ' + IB[L.inst].d + ' address.'); }
+              try { await rpc('request_link_code', { p_link: L.id, p_email: em }); } catch (x) { t.disabled = false; return err(x.message === 'email_domain_mismatch' ? 'Use your ' + IB[L.inst].d + ' address.' : x.message === 'codes_off' ? ERR.codes_off : why(x)); }
+              st.sent = true; st.email = em; redraw(); return;
+            }
+            var code = ($('#ai-code', m).value || '').replace(/\D/g, '');
+            if (code.length !== 6) { t.disabled = false; return err('Enter all 6 digits.'); }
+            var good; try { good = await rpc('confirm_link_code', { p_link: L.id, p_code: code }); } catch (x) { t.disabled = false; return err(why(x)); }
+            if (!good) { t.disabled = false; return err('That code is not right. Check the email and try again.'); }
+            return done('Email confirmed. You are now also listed under ' + aiName(L) + '.');
+          }
+          if (st.method === 'referral') {
+            var rc = ($('#ai-ref', m).value || '').trim(); if (!rc) { t.disabled = false; return err('Enter the referral code from your email.'); }
+            var ok2; try { ok2 = await rpc('redeem_link_referral', { p_link: L.id, p_code: rc }); } catch (x) { t.disabled = false; return err(why(x)); }
+            if (!ok2) { t.disabled = false; return err('That code did not work. Check it, or ask your referrer for a new one.'); }
+            return done('Referral accepted. You are now also listed under ' + aiName(L) + '.');
+          }
+          var f = $('#ai-file', m).files[0];
+          if (!f) { t.disabled = false; return err('Choose your certificate first.'); }
+          if (!$('#ai-consent', m).checked) { t.disabled = false; return err('Tick the box to say you are happy for two volunteers to check it.'); }
+          if (!window.BridgesRedact || typeof window.BridgesRedact.open !== 'function') { t.disabled = false; return err('The hiding tool did not load, so nothing was sent. Reload the page and try again.'); }
+          m.style.display = 'none';
+          var blob; try { blob = await window.BridgesRedact.open(f, { coverQR: COVER_QR }); } finally { m.style.display = ''; }
+          if (!blob) { t.disabled = false; return; }
+          if (!/^image\/(jpeg|png|webp)$/.test(blob.type)) { t.disabled = false; return err('The hidden copy was not an image. Try again.'); }
+          if (blob.size > 8000000) { t.disabled = false; return err(ERR.bad_file_size); }
+          try {
+            if (B.certWorkerUrl) {
+              var rid = await rpc('submit_link_certificate_start', { p_link: L.id, p_mime: blob.type, p_bytes: blob.size });
+              var rs = await fetch(B.certWorkerUrl + '/u/' + rid, { method: 'PUT', headers: { Authorization: 'Bearer ' + await certToken(), 'Content-Type': blob.type }, body: blob });
+              if (!rs.ok) await certFail(rs);
+            } else { await rpc('submit_link_certificate', { p_link: L.id, p_mime: blob.type, p_data_base64: await toBase64(blob) }); }
+          } catch (x) { t.disabled = false; return err(why(x)); }
+          await loadInsts(); if (X('parse')().v === 'profile') F('renderProfile'); m.close(); toast('Sent to the volunteer queue. We\'ll list you there once two volunteers approve.', { t: 'Sent' });
+        } catch (x) { t.disabled = false; console.error('[bridges]', x); err(why(x)); }
+      });
+    }
+    function openVerify(L) { var m = F('modal', '', 'Verify ' + aiName(L)); aiVerifyUI(m, L); }
+    async function removeInst(id) {
+      var L = ((S.user && S.user.insts) || []).filter(function (q) { return q.id === id; })[0]; if (!L) return;
+      var m = F('modal', F('mdHead', 'Remove ' + aiEsc(aiName(L)) + '?', 'It will no longer be on your profile or in the directory. You can add it again later.')
+        + '<div class="md-f"><button class="btn danger" type="button" data-ai-rm>Remove</button><button class="btn ghost" type="button" data-mclose>Cancel</button></div>', 'Remove institute');
+      m.addEventListener('click', async function (e) {
+        if (!e.target.closest('[data-ai-rm]')) return;
+        try { await rpc('remove_my_institute', { p_link: id }); } catch (x) { return toast(why(x), { k: 'warn' }); }
+        m.close(); await aiRefresh(); toast('Removed.', { k: 'info', i: 'trash' });
+      });
+    }
+    on('click', '[data-ai-add]', guard(openAdd));
+    on('click', '[data-ai-verify]', guard(function (e, t) { var L = ((S.user && S.user.insts) || []).filter(function (q) { return q.id === t.dataset.aiVerify; })[0]; if (L) openVerify(L); }));
+    on('click', '[data-ai-remove]', guard(function (e, t) { return removeInst(t.dataset.aiRemove); }));
+    on('click', '[data-ai-refer]', function (e, t) { BR.refInst = t.dataset.aiRefer; });
+    on('input', '#ai-ref', function (e, t) { t.value = t.value.toUpperCase().replace(/[^A-Z0-9 \-]/g, '').slice(0, 15); });
+
+    /* refer someone: you can refer for any institute where you are a verified alum */
+    function aiReferTo(u) {
+      var out = []; if (u.kind === 'alum') out.push({ inst: u.inst, campus: u.campus });
+      (u.insts || []).forEach(function (L) { if (L.verified && L.kind === 'alum') out.push({ inst: L.inst, campus: L.campus }); });
+      var seen = {}; return out.filter(function (x) { var k = x.inst; if (seen[k]) return false; seen[k] = 1; return true; });
+    }
+    (function () {
+      var origRefer = X('renderRefer');
+      setFn('renderRefer', function () {
+        var u = S.user; if (!u || u.kind === 'faculty') return origRefer();
+        var opts = aiReferTo(u);
+        if (!opts.length && !u.insts) { u.insts = []; loadInsts().then(function () { if (X('parse')().v === 'refer') F('renderRefer'); }).catch(function () {}); return origRefer(); }
+        if (!opts.length) return origRefer();
+        var cur = opts.filter(function (o) { return o.inst === BR.refInst; })[0] || opts[0]; BR.refInst = cur.inst;
+        var k0 = u.kind, i0 = u.inst, c0 = u.campus; u.kind = 'alum'; u.inst = cur.inst; u.campus = cur.campus;
+        try { var r = origRefer(); } finally { u.kind = k0; u.inst = i0; u.campus = c0; }
+        var form = $('#rf');
+        if (form && opts.length > 1) {
+          form.insertAdjacentHTML('afterbegin', '<div style="display:grid;gap:6px"><label class="label" for="r-inst" style="margin:0">Refer to alumni of</label>'
+            + F('selWrap', '<select class="input" id="r-inst">' + opts.map(function (o) { return '<option value="' + aiEsc(o.inst) + '"' + (o.inst === cur.inst ? ' selected' : '') + '>' + aiEsc(IB[o.inst].n) + '</option>'; }).join('') + '</select>') + '</div>');
+        }
+        return r;
+      });
+    })();
+    on('change', '#r-inst', function (e, t) { BR.refInst = t.value; F('renderRefer'); });
+
     /* ---------- directory actions ---------- */
     async function reveal(btn, e) {
       var id = btn.dataset.reveal; btn.disabled = true;
@@ -662,11 +897,11 @@
       var u = S.user; if (!u) return;
       var em = ($('#r-em').value || '').trim(), nm = ($('#r-name').value || '').trim();
       if (!F('validEmail', em)) { var i = $('#r-em'); i.setAttribute('aria-invalid', 'true'); i.focus(); return toast('Enter their email address.', { k: 'warn' }); }
-      try { await rpc('create_referral', { p_email: em }); } catch (e) { return toast(why(e), { t: 'Not sent', k: 'warn' }); }
+      var rInst = BR.refInst || u.inst; try { await rpc('create_referral_for', { p_email: em, p_institute: rInst }); } catch (e) { return toast(why(e), { t: 'Not sent', k: 'warn' }); }
       u.refs = u.refs || []; u.refs.unshift({ email: em.toLowerCase(), name: nm, code: '', at: new Date(), status: 'pending' });
       F('renderRefer');
       F('modal', F('mdHead', 'Referral sent', F('esc', nm || em) + ' will get an email with their code.')
-        + '<p class="help">The code works once and expires in 14 days. They enter it at the verify step when they sign up as an alum of ' + F('esc', IB[u.inst].s) + '.</p>'
+        + '<p class="help">The code works once and expires in 14 days. They enter it at the verify step when they sign up as an alum of ' + F('esc', IB[rInst].s) + '.</p>'
         + '<div class="md-f"><button class="btn primary" type="button" data-mclose>Done</button></div>', 'Referral sent');
     }
     async function applyVolunteer() {
@@ -730,6 +965,31 @@
         + '<p class="help">Thank you for wanting to help. We\'ll open payments shortly, and the amount you chose will be one tap away.</p>'
         + '<div class="md-f"><button class="btn primary" type="button" data-mclose>Done</button></div>', 'Payments open soon');
     }
+
+    /* ---------- contact limit (R11): the member's own number, per day or per week ---------- */
+    var CL = { day: false };
+    function clApply(m) { S.limit = m.limit; BR.period = m.period; BR.resetsAt = m.resets_at ? new Date(m.resets_at) : null; CL.day = m.period === 'day'; }
+    /* the prototype's wording says "week"; with a daily limit say "day" instead (not on the legal pages, which the admin edits as page text) */
+    function dayWords(t) { return t.replace(/\bthis week\b/g, 'today').replace(/\beach week\b/g, 'each day').replace(/\ba week\b/g, 'a day').replace(/\bper week\b/g, 'per day').replace(/resets Monday/g, 'resets at midnight'); }
+    function clTidy(node) {
+      if (!CL.day || !node) return;
+      var host = node.nodeType === 1 ? node : node.parentElement, v = host && host.closest ? host.closest('[id^="v-"]') : null;
+      if (v && /^v-(about|privacy|terms|cookies|guidelines)$/.test(v.id)) return;
+      var hit = [];
+      if (node.nodeType === 3) hit.push(node);
+      else if (node.nodeType === 1) { var w = document.createTreeWalker(node, NodeFilter.SHOW_TEXT), n; while ((n = w.nextNode())) { if (/week|Monday/.test(n.nodeValue)) hit.push(n); } }
+      hit.forEach(function (t) { var nv = dayWords(t.nodeValue); if (nv !== t.nodeValue) t.nodeValue = nv; });
+    }
+    new MutationObserver(function (ms) { if (!CL.day) return; ms.forEach(function (m) { [].forEach.call(m.addedNodes, clTidy); }); }).observe(document.body, { childList: true, subtree: true });
+    var clOrigLimit = X('limitHtml'), clOrigReset = X('nextReset');
+    setFn('limitHtml', function () { var h = clOrigLimit.apply(null, arguments); return CL.day ? dayWords(h) : h; });
+    /* the reset date comes from the database (midnight India time for a day, Monday 00:00 for a week) */
+    setFn('nextReset', function () { if (!BR.resetsAt) return clOrigReset(); var t = new Date(BR.resetsAt.getTime() + 330 * 60000); return new Date(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate()); });
+    /* when the day or week rolls over while the page is open, count again from the database */
+    function clDue() { return !!(S.user && BR.resetsAt && Date.now() > BR.resetsAt.getTime()); }
+    async function clRefresh() { try { await loadSettings(); await loadContacts(); renderAll(); } catch (e) { /* try again next tick */ } }
+    setInterval(function () { if (!document.hidden && clDue()) clRefresh(); }, 30000);
+    document.addEventListener('visibilitychange', function () { if (!document.hidden && clDue()) clRefresh(); });
 
     /* ---------- render wrappers (draw first, then tidy) ---------- */
     function wrap(name, after) { var orig = X(name); setFn(name, function () { var r = orig.apply(null, arguments); try { after(); } catch (e) { console.error('[bridges]', name, e); } return r; }); }

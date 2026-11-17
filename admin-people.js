@@ -12,7 +12,12 @@
   var EXP_T = { job: 'Job', venture: 'Own venture', free: 'Freelance' };
   var LINK_T = { portfolio: 'Portfolio', behance: 'Behance', website: 'Website', other: 'Other link' };
   var LINK_PH = { portfolio: 'yourname.com/work', behance: 'behance.net/yourname', website: 'yourname.com', other: 'Dribbble, LinkedIn or a PDF link' };
-  var LINK_MAX = 4, LIMITS = [0, 1, 2, 3, 5, 8, 10, 15, 20];
+  var LINK_MAX = 4;
+  /* what a member gets when no personal number is set: their role's number, else the site number */
+  function defLimit(m) {
+    var o = ST.ov || {}, rl = o.role_limits || {}, role = m.is_volunteer ? 'volunteer' : m.kind, n = rl[role] != null ? rl[role] : (o.limit || 5);
+    return n + (o.period === 'day' ? ' a day' : ' a week');
+  }
   var linkText = function (ls) { return (ls || []).map(function (l) { return (LINK_T[l.t] || 'Link') + (l.name ? ' (' + l.name + ')' : '') + ': ' + l.url; }).join('; '); };
   var badLink = function (u) { return /\s/.test(u) || !/\.[a-z]{2,}$/i.test(u.replace(/^https?:\/\//i, '').split(/[/?#:]/)[0]); };
 
@@ -124,7 +129,7 @@
   function exportMembers() {
     var b = $('#mExp'); b.disabled = true;
     rpc('admin_export_members').then(function (rows) {
-      A.download('bridges-members.csv', A.csv([['Name', 'Type', 'Institute', 'Campus', 'Branch', 'Year', 'Google account', 'Institute email', 'Contact email', 'Links', 'Verified by', 'Status', 'Listed', 'Weekly contacts', 'Joined', 'Last active']]
+      A.download('bridges-members.csv', A.csv([['Name', 'Type', 'Institute', 'Campus', 'Branch', 'Year', 'Google account', 'Institute email', 'Contact email', 'Links', 'Verified by', 'Status', 'Listed', 'Contacts allowed (per day or per week, see Settings)', 'Joined', 'Last active']]
         .concat(rows.map(function (r) { return [r.name, KIND[r.kind], r.institute, r.campus, r.branch, r.year, r.google_email, r.email_institute, r.email_personal, linkText(r.links), r.verified_by, r.status, r.listed ? 'Yes' : 'No', r.weekly_contacts, fmtD(r.created_at), fmtD(r.last_seen)]; }))));
       A.refreshCounts();
     }).catch(A.fail).finally(function () { b.disabled = false; });
@@ -163,7 +168,7 @@
       '<div class="sec"><h4>Listing and limits</h4>' +
       '<label class="tgl"><span><b>Listed in the directory</b><span class="help">When off, the profile is hidden from the directory and browse pages, but they can still sign in.</span></span><input type="checkbox" id="e-listed"' + (m.listed ? ' checked' : '') + (H && m.verified ? '' : ' disabled') + '></label>' +
       (m.verified ? '' : '<p class="help">Not verified yet. They are listed once a volunteer or admin approves their certificate.</p>') +
-      '<div class="fld"><label class="label" for="e-limit">Contacts they can open each week</label><select class="input" id="e-limit"' + dis + '><option value="">Default (' + esc((ST.ov && ST.ov.limit) || 5) + ')</option>' + LIMITS.filter(function (n) { return n !== Number((ST.ov && ST.ov.limit) || 5); }).map(function (n) { return '<option value="' + n + '"' + (m.contact_limit === n ? ' selected' : '') + '>' + n + (n === 0 ? ' (cannot open contacts)' : '') + '</option>'; }).join('') + '</select></div>' +
+      '<div class="fld"><label class="label" for="e-limit">Contacts they can open ' + (ST.ov && ST.ov.period === 'day' ? 'each day' : 'each week') + '</label><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input class="input" id="e-limit" type="number" min="0" max="500" step="1" value="' + (m.contact_limit == null ? '' : m.contact_limit) + '" placeholder="Default: ' + esc(defLimit(m)) + '" style="max-width:190px"' + dis + '>' + (E ? '<button class="btn ghost sm" type="button" id="e-limdef">Use default</button>' : '') + '</div><span class="help">Any number from 0 to 500. Empty uses the default for their role (' + esc(defLimit(m)) + '). 0 means they cannot open contacts.</span></div>' +
       (stu ? '<label class="tgl" id="e-volw"><span><b>Volunteer</b><span class="help">Volunteers review certificates from new members. Turn on only after approving their application under Volunteer applications; turning off removes their access.</span></span><input type="checkbox" id="e-vol"' + (m.is_volunteer ? ' checked' : '') + dis + '></label>' : '') + '</div>' +
       '<div class="sec"><h4>Account status</h4><div class="seg" role="group" aria-label="Account status" id="e-st">' + [['active', 'Active'], ['suspended', 'Suspended']].map(function (s) { return '<button type="button" data-st="' + s[0] + '" aria-pressed="' + (m.status === s[0]) + '"' + (H ? '' : ' disabled') + '>' + s[1] + '</button>'; }).join('') + '</div><p class="help">Suspended members cannot sign in and are not listed. Their data stays until you delete it.</p></div>' +
       '<div class="sec"><h4>Recent activity</h4><div id="e-act"><p class="help">' + (A.can('logs') ? 'Loading…' : 'Your role cannot see the activity log.') + '</p></div>' +
@@ -175,6 +180,7 @@
       var box = $('#e-act', d); if (!box) return;
       box.innerHTML = rows.length ? '<div class="mini">' + rows.map(function (l) { return '<div><b style="font-weight:400">' + esc(l.target_id === m.id && l.who !== m.name ? l.who + ' · ' + l.act : l.act + (l.target ? ': ' + l.target : '')) + '</b><span>' + rel(l.at) + '</span></div>'; }).join('') + '</div>' : '<p class="help">Nothing in the last two weeks.</p>';
     }, function () { var box = $('#e-act', d); if (box) box.innerHTML = '<p class="help">Could not load the activity.</p>'; });
+    if ($('#e-limdef', d)) $('#e-limdef', d).addEventListener('click', function () { $('#e-limit', d).value = ''; $('#e-limit', d).focus(); });
     $('#e-inst', d).addEventListener('change', function (e) {
       var x = splitInst(e.target.value), i = inst(x.inst) || { branches: [] };
       $('#e-branch', d).innerHTML = branchOpts(i, '');
@@ -201,6 +207,8 @@
     var name = $('#e-name', d).value.trim(), kind = $('#e-kind', d).value, x = splitInst($('#e-inst', d).value), year = parseInt($('#e-year', d).value, 10);
     if (!name) return bad('#e-name', 'Add their name.');
     if (!year || year < 1970 || year > 2032) return bad('#e-year', 'Enter a year between 1970 and 2032.');
+    var limRaw = $('#e-limit', d).value.trim();
+    if (limRaw !== '' && !(/^\d+$/.test(limRaw) && +limRaw <= 500)) return bad('#e-limit', 'Use a whole number from 0 to 500, or leave it empty for the default.');
     var badL = $$('.lk-u', d).filter(function (i) { return i.value.trim() && badLink(i.value.trim()); })[0];
     if (badL) { badL.setAttribute('aria-invalid', 'true'); badL.focus(); err.textContent = '"' + badL.value.trim() + '" does not look like a web address.'; return; }
     var ie = $('#e-ie', d) ? $('#e-ie', d).value.trim().toLowerCase() : '', ce = $('#e-ce', d) ? $('#e-ce', d).value.trim().toLowerCase() : '';

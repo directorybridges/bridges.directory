@@ -485,7 +485,7 @@
       tile('applications', 'inbox', 'Volunteer applications', o.vol_pending || 0, Number(o.vol_pending) ? 'Waiting for a decision' : 'All caught up', Number(o.vol_pending)) +
       tile('volunteers', 'users', 'Volunteers', ST.vols.length, 'Can review certificates') +
       tile('contributions', 'wallet', 'Raised', inr(paidSum()), paidCount() + ' paid contribution' + (paidCount() === 1 ? '' : 's')) +
-      tile('settings', 'sliders', 'Contacts per week', o.limit || 5, 'Per member, by default') +
+      tile('settings', 'sliders', o.period === 'day' ? 'Contacts per day' : 'Contacts per week', o.limit || 5, 'Per member, by default') +
       '</div>' +
       '<div class="cols"><section class="card"><div class="card-h"><h3>Recent activity</h3>' + (can('logs') ? '<a class="btn ghost sm" href="admin.html" data-view="logs">See all' + ico('right', 14) + '</a>' : '') + '</div>' +
       (recent.length ? '<div class="tbl" style="' + tableCols('minmax(0,1.3fr) minmax(0,1.6fr) 96px') + '">' + recent.map(function (l) {

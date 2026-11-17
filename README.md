@@ -8,6 +8,9 @@
 - **Home banner**: the animated globe (`hero-globe.js` and `fonts/`). It rebuilds itself from the home page, so a new design file does not remove it.
 - **Sign-up pages**: `#join` is a chooser (student / alum / referral code). `#join/student` and `#join/alum` are separate pages with no "I am" switch; the choice is remembered through the Google redirect (`bridges-kind`). Built in `bridges-backend.js` (`kindPost`), from the designer's updated artifact.
 - **Referral sign-up**: the emailed link opens `#join/referral/CODE` (code first, then Google, then profile, then listed). It lives in `bridges-backend.js` and the database function `check_referral` (`supabase/0007_referral_landing.sql`). Codes are 8 characters; the box accepts up to 15 and ignores spaces, dashes and case.
+- **Contact limit**: set in the admin under Settings as a count per day or per week (1 to 500), with an optional own count for Volunteers, Students, Alumni and Faculty. A personal count on a member's profile beats the role, and the role beats the site. A day resets at midnight and a week on Monday, India time. Built in `supabase/0009_contact_limits.sql`; check with `node tests-limits.js ../.env`.
+- **Contact counter on the member site**: `bridges-backend.js` ("contact limit" block) reads `my_contact_limit()`, so each member sees their own number, and the wording says "today" instead of "this week" for a daily limit.
+- **More than one institute**: a verified member can add extra institutes (Master's, PhD) from My profile, each with its own status (student or alum) and its own verification (institute email, certificate, referral code). It is shown in the directory only once verified. Built in `bridges-backend.js` and `supabase/0008_multi_institute.sql`; checked by `supabase/tests-institutes.js`.
 - **Daily clean-up**: a database job (`bridges-daily-cleanup`, 02:00 IST) deletes expired certificates, old codes and expired invites.
 
 ## Everyday jobs
