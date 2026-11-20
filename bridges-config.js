@@ -12,5 +12,8 @@ window.BRIDGES = {
   // Address of the certificate Worker (Cloudflare R2). Empty = certificates stay in the database, as before.
   certWorkerUrl: 'https://bridges-certs.directorybridges.workers.dev',
   supabaseUrl: 'https://fpvqhqjdlqwfjsgblwzq.supabase.co',
+  // Google's own sign-in popup instead of the redirect through supabase.co. Public id; the switch stays false until tested.
+  googleClientId: '95124646659-bali9vss9iljab7j2adeheotles4dp99.apps.googleusercontent.com',
+  googleButton: true,
   publishableKey: 'sb_publishable_44DFmgOXzrHCUV9xDkh8Ug_zxFIj2FM'
 };

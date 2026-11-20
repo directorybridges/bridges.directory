@@ -284,11 +284,93 @@
     function renderAll() { F('renderNav'); if (X('parse')().v === 'join') F('renderJoin'); else if (BR.booted) F('route'); }
 
     /* ---------- Google and faculty sign-in ---------- */
+    /* Google's own sign-in popup (Google Identity Services). The browser asks Google for a sign-in token and we hand it to
+       Supabase, so the member never visits the supabase.co address. Off unless config has googleClientId and
+       googleButton:true (or ?gis=1 in one browser for testing, ?gis=0 to undo). Any failure falls back to the redirect. */
+    function gisOn() {
+      try { var m = /[?&]gis=([01])/.exec(location.search); if (m) localStorage.setItem('bridges-gis', m[1]); } catch (e) {}
+      var on = !!B.googleButton; try { var v = localStorage.getItem('bridges-gis'); if (v === '1') on = true; if (v === '0') on = false; } catch (e) {}
+      return on && !!B.googleClientId;
+    }
+    function gisLoad() {
+      if (window.google && google.accounts && google.accounts.id) return Promise.resolve();
+      return new Promise(function (ok, no) {
+        var s = document.createElement('script'); s.src = 'https://accounts.google.com/gsi/client'; s.async = true;
+        s.onload = ok; s.onerror = no; document.head.appendChild(s); setTimeout(no, 8000);
+      });
+    }
+    async function gisSignIn() {
+      try {
+        await gisLoad();
+        return await new Promise(function (resolve) {
+          var settled = false, done = function (v) { if (!settled) { settled = true; resolve(v); } };
+          google.accounts.id.initialize({
+            client_id: B.googleClientId, use_fedcm_for_prompt: true, cancel_on_tap_outside: false, auto_select: false,
+            callback: async function (resp) {
+              try {
+                var r = await sb.auth.signInWithIdToken({ provider: 'google', token: resp.credential });
+                if (r.error || !r.data || !r.data.user) { console.warn('[bridges] token sign-in failed', r.error); return done(false); }
+                BR.uid = r.data.user.id;
+                sb.rpc('log_signin', { p_faculty: false }).then(function () {}, function () {});
+                var out = await settle(); goNext(out, out === 'member'); done(true);
+              } catch (e) { console.warn('[bridges] token sign-in error', e); done(false); }
+            }
+          });
+          google.accounts.id.prompt(function (n) {
+            // a popup that could not open or was skipped falls back to the redirect; a member who closes it stays on the page
+            if (n.isNotDisplayed && n.isNotDisplayed()) done(false);
+            else if (n.isSkippedMoment && n.isSkippedMoment()) done(false);
+            else if (n.isDismissedMoment && n.isDismissedMoment() && n.getDismissedReason() !== 'credential_returned') done(true);
+          });
+        });
+      } catch (e) { console.warn('[bridges] Google popup unavailable', e); return false; }
+    }
+    /* Google's real button, laid invisibly over our own "Continue with Google" buttons, so the click opens Google's popup
+       directly (this is the path that works in every browser). Our button looks exactly the same. */
+    var gisCred = async function (resp) {
+      try {
+        var r = await sb.auth.signInWithIdToken({ provider: 'google', token: resp.credential });
+        if (r.error || !r.data || !r.data.user) { console.warn('[bridges] token sign-in failed', r.error); toast('Could not sign in with Google. Please try again.', { t: 'Sign-in failed', k: 'warn' }); return; }
+        BR.uid = r.data.user.id;
+        sb.rpc('log_signin', { p_faculty: false }).then(function () {}, function () {});
+        var out = await settle(); goNext(out, out === 'member');
+      } catch (e) { console.warn('[bridges] token sign-in error', e); toast('Could not sign in with Google. Please try again.', { t: 'Sign-in failed', k: 'warn' }); }
+    };
+    function gisOverlays() {
+      if (!gisOn()) return;
+      gisLoad().then(function () {
+        google.accounts.id.initialize({ client_id: B.googleClientId, callback: gisCred, ux_mode: 'popup', auto_select: false });
+        var map = new Map();
+        var tick = function () {
+          var live = new Set();
+          $$('[data-gsign],[data-jg]').forEach(function (b) {
+            var r = b.getBoundingClientRect();
+            if (r.width < 40 || r.height < 20 || !b.offsetParent) return;
+            live.add(b);
+            var o = map.get(b);
+            if (!o) {
+              var box = document.createElement('div'), inner = document.createElement('div');
+              box.setAttribute('aria-hidden', 'true');
+              box.style.cssText = 'position:fixed;overflow:hidden;opacity:0.01;z-index:2147483000;cursor:pointer;';
+              inner.style.cssText = 'width:400px;height:40px;transform-origin:0 0;';
+              box.appendChild(inner); document.body.appendChild(box);
+              google.accounts.id.renderButton(inner, { type: 'standard', size: 'large', theme: 'outline', text: 'continue_with', width: 400 });
+              o = { box: box, inner: inner }; map.set(b, o);
+            }
+            o.box.style.left = r.left + 'px'; o.box.style.top = r.top + 'px'; o.box.style.width = r.width + 'px'; o.box.style.height = r.height + 'px';
+            o.inner.style.transform = 'scale(' + (r.width / 400) + ',' + (r.height / 40) + ')';
+          });
+          map.forEach(function (o, b) { if (!live.has(b)) { o.box.parentNode.removeChild(o.box); map.delete(b); } });
+        };
+        setInterval(tick, 250); window.addEventListener('scroll', tick, true); window.addEventListener('resize', tick); tick();
+      }, function () { /* Google's script is blocked: the buttons keep the normal redirect */ });
+    }
     async function googleSignIn() {
       try {
         var cfg = await fetch(B.supabaseUrl + '/auth/v1/settings', { headers: { apikey: B.publishableKey } }).then(function (r) { return r.json(); });
         if (!(cfg && cfg.external && cfg.external.google)) { toast('Google sign-in is not switched on yet. Faculty can sign in with their ID.', { t: 'Not available yet', k: 'warn' }); return; }
       } catch (e) {}
+      if (gisOn() && await gisSignIn()) return;       // Google's own popup; any problem falls back to the redirect below
       try { sessionStorage.setItem('bridges-oauth', '1'); } catch (e) {}
       var r = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + location.pathname, queryParams: { prompt: 'select_account' } } });
       if (r.error) toast('Could not start Google sign-in. Please try again.', { t: 'Sign-in failed', k: 'warn' });
@@ -1136,6 +1218,7 @@
       if (ev === 'SIGNED_OUT' && BR.uid) { setTimeout(function () { clearMember(); if (BR.booted) { F('renderNav'); F('route'); } }, 0); }
       else if (ev === 'SIGNED_IN' && session && BR.booted) { setTimeout(function () { if (session.user.id === BR.uid || BR.settling) return; settle().then(function (o) { goNext(o, true); }); }, 0); }
     });
+    gisOverlays();
     var start = function () { if (BR.booted) return; BR.booted = true; if (window.__BRBOOT) window.__BRBOOT(); };
     var fresh = false; try { fresh = sessionStorage.getItem('bridges-oauth') === '1'; sessionStorage.removeItem('bridges-oauth'); } catch (e) {}
     loadDomains().then(function () { return settle(); }).then(function (out) { BR.booted = true; if (BR.uid) { if (fresh) sb.rpc('log_signin', { p_faculty: false }).then(function () {}, function () {}); else sb.rpc('touch_last_seen').then(function () {}, function () {}); } goNext(out, fresh && out === 'member'); if (window.__BRBOOT) window.__BRBOOT(); })
