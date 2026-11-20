@@ -182,24 +182,47 @@
   function renderSettings() {
     if (G.cur === null) {
       A.view().innerHTML = '<div class="empty"><span>Loading…</span></div>';
-      rpc('admin_get_settings').then(function (s) { G.cur = s; if (ST.view === 'settings') renderSettings(); }, A.fail);
+      Promise.all([rpc('admin_get_settings'), rpc('admin_domains')]).then(function (r) { G.cur = r[0]; G.dom = r[1]; if (ST.view === 'settings') renderSettings(); }, A.fail);
       return;
     }
-    var s = JSON.parse(JSON.stringify(G.cur)), E = A.can('settings');
+    var s = JSON.parse(JSON.stringify(G.cur)), E = A.can('settings'), d = JSON.parse(JSON.stringify(G.dom));
+    var dname = function (x) { return x.inst ? (ST.insts[x.inst] || x.short || x.inst) : x.name; };
+    var domRows = function () {
+      return ST.instRows.map(function (i) { return '<label><span><b style="font-weight:500">' + esc(i.short) + '</b> <code>@' + esc(i.email_domain) + '</code></span><span class="tgl" style="flex:none"><input type="checkbox" data-dom="' + esc(i.id) + '" aria-label="' + esc(i.short) + ' @' + esc(i.email_domain) + '"' + (s.domains[i.id] !== false ? ' checked' : '') + '></span></label>'; }).filter(function (h, k) { return ST.instRows[k].email_domain; }).join('') +
+        d.student.map(function (x, k) { return '<label class="dom-x"><span><b style="font-weight:500">' + esc(dname(x)) + '</b> <code>@' + esc(x.d) + '</code> <span class="pill' + (x.new || !x.inst ? ' warn' : '') + '">' + (x.new || !x.inst ? 'New institute' : 'Added') + '</span></span>' +
+          '<button class="btn ghost sm dom-rm" type="button" data-drm="' + k + '" aria-label="Remove @' + esc(x.d) + '" title="Remove">' + ico('trash', 15) + '</button>' +
+          '<span class="tgl" style="flex:none"><input type="checkbox" data-xdom="' + k + '" aria-label="' + esc(dname(x)) + ' @' + esc(x.d) + '"' + (x.on ? ' checked' : '') + '></span></label>'; }).join('');
+    };
+    var alumRows = function () {
+      return d.alumni.map(function (x, k) { return '<label class="dom-x"><span><b style="font-weight:500">' + esc(dname(x)) + '</b> <code>@' + esc(x.d) + '</code>' + (x.from ? ' <span class="pill">Batch of ' + x.from + ' on</span>' : '') + (x.new || !x.inst ? ' <span class="pill warn">New institute</span>' : '') + '</span>' +
+        '<button class="btn ghost sm dom-rm" type="button" data-arm="' + k + '" aria-label="Remove @' + esc(x.d) + '" title="Remove">' + ico('trash', 15) + '</button>' +
+        '<span class="tgl" style="flex:none"><input type="checkbox" data-adom="' + k + '" aria-label="' + esc(dname(x)) + ' @' + esc(x.d) + '"' + (x.on ? ' checked' : '') + '></span></label>'; }).join('') || '<p class="help" style="padding:10px var(--sp-m)">No alumni domains yet.</p>';
+    };
+    var instOpts = '<option value="">Choose an institute</option>' + ST.instRows.map(function (i) { return '<option value="' + esc(i.id) + '">' + esc(i.short) + '</option>'; }).join('') + '<option value="new">A new institute…</option>';
     var row = function (t, p, ctl) { return '<div class="set"><div><b>' + t + '</b><p class="help">' + p + '</p></div><div class="ctl">' + ctl + '</div></div>'; };
     A.view().innerHTML = ph('Settings', 'Rules that apply across Bridges.directory.') +
       '<section class="card">' +
       row('Contact limit', 'How many contacts each member can open, per day or per week. A day resets at midnight and a week on Monday, India time. Change it for a role below, or for one person from their profile.', '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><input class="input" id="s-limit" type="number" min="1" max="500" step="1" value="' + s.limit + '" style="max-width:110px" aria-label="Contacts"><div class="seg" role="group" aria-label="Per">' + [['day', 'Per day'], ['week', 'Per week']].map(function (x) { return '<button type="button" data-pd="' + x[0] + '" aria-pressed="' + (s.period === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div></div>') +
       row('Limits by role', 'Give a role its own number. Leave a box empty to use the site limit above. A personal limit set on a profile beats the role. A student who is also a volunteer uses the Volunteers number.', '<div class="rls">' + RL.map(function (r) { return '<label><span>' + r[1] + '</span><input class="input" type="number" min="0" max="500" step="1" data-rl="' + r[0] + '" placeholder="' + s.limit + '" value="' + (s.role_limits[r[0]] == null ? '' : s.role_limits[r[0]]) + '" aria-label="' + r[1] + ', contacts ' + (s.period === 'day' ? 'per day' : 'per week') + '"></label>'; }).join('') + '<small class="help" id="s-rlp"></small></div>') +
       row('Volunteer approvals', 'How many volunteers must approve a certificate before someone is listed. An admin can always approve on their own.', '<div class="seg" role="group" aria-label="Approvals needed">' + [1, 2, 3].map(function (n) { return '<button type="button" data-ap="' + n + '" aria-pressed="' + (s.approvals === n) + '">' + n + '</button>'; }).join('') + '</div>') +
-      row('Institute emails for codes', 'Students with an address on these domains can verify with a 6-digit code. Turn one off to send that institute\'s students to certificate checks instead.', '<div class="doms">' + ST.instRows.map(function (i) { return '<label><span><b style="font-weight:500">' + esc(i.short) + '</b> <code>@' + esc(i.email_domain) + '</code></span><span class="tgl" style="flex:none"><input type="checkbox" data-dom="' + esc(i.id) + '" aria-label="' + esc(i.short) + '"' + (s.domains[i.id] !== false ? ' checked' : '') + '></span></label>'; }).join('') + '</div>') +
+      row('Institute emails for codes', 'Students with an address on these domains can verify with a 6-digit code. Turn one off to send that institute\'s students to certificate checks instead. Add a domain when an institute gets a new one, or when a new college joins.', '<div class="doms" id="s-doms">' + domRows() + '</div>' +
+        '<div class="dom-add"><div class="dom-f"><select class="input" id="s-di" aria-label="Institute for the new domain">' + instOpts + '</select>' +
+        '<input class="input" id="s-dn" placeholder="Institute name, e.g. NID Andhra Pradesh" maxlength="60" aria-label="New institute name" hidden>' +
+        '<label class="dom-in"><span>@</span><input class="input" id="s-dd" placeholder="newcollege.ac.in" autocomplete="off" spellcheck="false" aria-label="Email domain"></label>' +
+        '<button class="btn secondary" type="button" id="s-dadd">' + ico('plus', 15) + 'Add domain</button></div><p class="err" id="s-derr" role="alert"></p></div>') +
+      row('Alumni emails for codes', 'Alumni with an address on these domains can verify with a 6-digit code instead of a certificate. If an institute only started issuing them recently, set the first batch that got one.', '<div class="doms" id="s-adoms">' + alumRows() + '</div>' +
+        '<div class="dom-add"><div class="dom-f a4"><select class="input" id="s-ai" aria-label="Institute for the new alumni domain">' + instOpts + '</select>' +
+        '<input class="input" id="s-an" placeholder="Institute name" maxlength="60" aria-label="New institute name" hidden>' +
+        '<label class="dom-in"><span>@</span><input class="input" id="s-ad" placeholder="alumni.college.ac.in" autocomplete="off" spellcheck="false" aria-label="Alumni email domain"></label>' +
+        '<input class="input" id="s-ay" type="number" min="1950" max="2100" placeholder="First batch" title="Optional: the first graduating batch that got one" aria-label="First graduating batch with an alumni email (optional)">' +
+        '<button class="btn secondary" type="button" id="s-aadd">' + ico('plus', 15) + 'Add domain</button></div><p class="err" id="s-aerr" role="alert"></p></div>') +
       row('Sign-ups', 'Pause new sign-ups without affecting existing members.', '<label class="tgl"><span><b>Open for new members</b></span><input type="checkbox" id="s-su"' + (s.signups ? ' checked' : '') + '></label><textarea class="input" id="s-pm" rows="2" maxlength="300" aria-label="Message while paused"' + (s.signups ? ' hidden' : '') + '>' + esc(s.pause_msg) + '</textarea>') +
       row('Site notice', 'A short message at the top of every page, for maintenance or news.', '<label class="tgl"><span><b>Show a notice</b></span><input type="checkbox" id="s-bn"' + (s.banner_on ? ' checked' : '') + '></label><input class="input" id="s-bm" maxlength="300" placeholder="e.g. Bridges will be down for 10 minutes at 11 pm tonight." value="' + esc(s.banner_msg) + '"' + (s.banner_on ? '' : ' hidden') + '>') +
       row('Yearly contribution goal', 'Shown on the Contribute page and the home tile.', '<div style="display:flex;align-items:center;gap:8px"><span class="muted">₹</span><input class="input" id="s-goal" type="number" min="0" step="500" value="' + s.goal + '" style="max-width:160px"></div>') +
       '<div class="savebar"><span class="help" id="s-n">No unsaved changes</span><button class="btn primary" type="button" id="s-save" disabled>Save settings</button></div></section>';
-    if (!E) $$('#view input,#view textarea,#view [data-ap],#view [data-pd],#s-save').forEach(function (i) { i.disabled = true; });
-    var label = { limit: 'Contact limit', period: 'Contact limit period', role_limits: 'Contact limits by role', approvals: 'Volunteer approvals', domains: 'Institute emails', signups: 'Sign-ups', pause_msg: 'Pause message', banner_on: 'Site notice', banner_msg: 'Notice text', goal: 'Contribution goal' };
-    var diff = function () { return Object.keys(label).filter(function (k) { return JSON.stringify(s[k]) !== JSON.stringify(G.cur[k]); }); };
+    if (!E) $$('#view input,#view textarea,#view select,#view button.dom-rm,#view [data-ap],#view [data-pd],#s-save,#s-dadd,#s-aadd').forEach(function (i) { i.disabled = true; });
+    var label = { limit: 'Contact limit', period: 'Contact limit period', role_limits: 'Contact limits by role', approvals: 'Volunteer approvals', domains: 'Institute emails', dom: 'Email domains', signups: 'Sign-ups', pause_msg: 'Pause message', banner_on: 'Site notice', banner_msg: 'Notice text', goal: 'Contribution goal' };
+    var diff = function () { return Object.keys(label).filter(function (k) { return k === 'dom' ? JSON.stringify(d) !== JSON.stringify(G.dom) : JSON.stringify(s[k]) !== JSON.stringify(G.cur[k]); }); };
     var upd = function () { var n = diff().length; $('#s-n').textContent = n ? n + ' unsaved change' + (n === 1 ? '' : 's') : 'No unsaved changes'; $('#s-save').disabled = !n || !E; };
     var rlNote = function () { $('#s-rlp').textContent = (s.period === 'day' ? 'Contacts per day' : 'Contacts per week') + '. Empty = same as the site limit (' + s.limit + ').'; $$('[data-rl]').forEach(function (i) { i.placeholder = s.limit; }); };
     rlNote();
@@ -212,6 +235,59 @@
     });
     $$('[data-ap]').forEach(function (b) { b.addEventListener('click', function () { s.approvals = +b.dataset.ap; $$('[data-ap]').forEach(function (x) { x.setAttribute('aria-pressed', x === b); }); upd(); }); });
     $$('[data-dom]').forEach(function (c) { c.addEventListener('change', function () { s.domains[c.dataset.dom] = c.checked; upd(); }); });
+    var DOM_RE = /^(?=.{4,80}$)([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/, PERSONAL = /^(gmail|googlemail|yahoo|outlook|hotmail|live|icloud|proton|protonmail|rediffmail)\./;
+    var bindDoms = function () {
+      $$('[data-dom]').forEach(function (c) { c.onchange = function () { s.domains[c.dataset.dom] = c.checked; upd(); }; });
+      $$('[data-xdom]').forEach(function (c) { c.onchange = function () { d.student[+c.dataset.xdom].on = c.checked; upd(); }; });
+      $$('[data-drm]').forEach(function (b) { b.onclick = function (e) { e.preventDefault(); d.student.splice(+b.dataset.drm, 1); $('#s-doms').innerHTML = domRows(); bindDoms(); upd(); }; });
+      if (!E) $$('#s-doms input,#s-doms button').forEach(function (i) { i.disabled = true; });
+    };
+    var bindAlum = function () {
+      $$('[data-adom]').forEach(function (c) { c.onchange = function () { d.alumni[+c.dataset.adom].on = c.checked; upd(); }; });
+      $$('[data-arm]').forEach(function (b) { b.onclick = function (e) { e.preventDefault(); d.alumni.splice(+b.dataset.arm, 1); $('#s-adoms').innerHTML = alumRows(); bindAlum(); upd(); }; });
+      if (!E) $$('#s-adoms input,#s-adoms button').forEach(function (i) { i.disabled = true; });
+    };
+    bindDoms(); bindAlum();
+    var clean = function (v) { return v.trim().toLowerCase().replace(/^.*@/, '').replace(/^https?:\/\//, '').replace(/\/.*$/, ''); };
+    var taken = function (dm) { return ST.instRows.some(function (i) { return i.email_domain === dm; }) || d.student.some(function (x) { return x.d === dm; }); };
+    var nameDup = function (nm) { return ST.instRows.filter(function (i) { return i.name.toLowerCase() === nm.toLowerCase() || i.short.toLowerCase() === nm.toLowerCase(); })[0]; };
+    $('#s-ai').addEventListener('change', function (e) { $('#s-an').hidden = e.target.value !== 'new'; if (e.target.value === 'new') $('#s-an').focus(); });
+    $('#s-ad').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); $('#s-aadd').click(); } });
+    $('#s-aadd').addEventListener('click', function () {
+      var err = $('#s-aerr'), sel = $('#s-ai').value, nm = $('#s-an').value.trim(), yr = +$('#s-ay').value || 0, dm = clean($('#s-ad').value);
+      [$('#s-ai'), $('#s-an'), $('#s-ad'), $('#s-ay')].forEach(function (i) { i.removeAttribute('aria-invalid'); }); err.textContent = '';
+      var bad = function (el, m) { el.setAttribute('aria-invalid', 'true'); el.focus(); err.textContent = m; };
+      if (!sel) return bad($('#s-ai'), 'Choose which institute gives out this alumni email.');
+      if (sel === 'new' && !nm) return bad($('#s-an'), 'Type the new institute\'s name.');
+      var dup = sel === 'new' && nameDup(nm);
+      if (dup) return bad($('#s-an'), dup.short + ' is already listed. Pick it from the list instead.');
+      if (!DOM_RE.test(dm)) return bad($('#s-ad'), 'Enter a domain like alumni.iitb.ac.in, without the part before the @.');
+      if (PERSONAL.test(dm)) return bad($('#s-ad'), 'That\'s a personal email provider. Only institute-issued alumni domains can verify.');
+      if (taken(dm)) return bad($('#s-ad'), '@' + dm + ' is on the student list. Students and alumni need different domains, or students could verify as alumni.');
+      if (d.alumni.some(function (x) { return x.d === dm; })) return bad($('#s-ad'), '@' + dm + ' is already on the list.');
+      if (yr && (yr < 1950 || yr > new Date().getFullYear() + 1)) return bad($('#s-ay'), 'Enter the first graduating batch, like 2026, or leave it blank.');
+      d.alumni.push({ id: null, d: dm, inst: sel === 'new' ? '' : sel, name: sel === 'new' ? nm : '', from: yr, on: true, new: sel === 'new' });
+      $('#s-adoms').innerHTML = alumRows(); bindAlum(); ['#s-ad', '#s-an', '#s-ay', '#s-ai'].forEach(function (q) { $(q).value = ''; }); $('#s-an').hidden = true; upd();
+      toast('@' + dm + ' is added. Save settings to start sending codes to it.', { t: 'Alumni domain added', i: 'mail' });
+    });
+    $('#s-di').addEventListener('change', function (e) { $('#s-dn').hidden = e.target.value !== 'new'; if (e.target.value === 'new') $('#s-dn').focus(); });
+    $('#s-dd').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); $('#s-dadd').click(); } });
+    $('#s-dadd').addEventListener('click', function () {
+      var err = $('#s-derr'), sel = $('#s-di').value, nm = $('#s-dn').value.trim(), dm = clean($('#s-dd').value);
+      [$('#s-di'), $('#s-dn'), $('#s-dd')].forEach(function (i) { i.removeAttribute('aria-invalid'); }); err.textContent = '';
+      var bad = function (el, m) { el.setAttribute('aria-invalid', 'true'); el.focus(); err.textContent = m; };
+      if (!sel) return bad($('#s-di'), 'Choose which institute this domain belongs to.');
+      if (sel === 'new' && !nm) return bad($('#s-dn'), 'Type the new institute\'s name.');
+      var dup = sel === 'new' && nameDup(nm);
+      if (dup) return bad($('#s-dn'), dup.short + ' is already listed. Pick it from the list instead.');
+      if (!DOM_RE.test(dm)) return bad($('#s-dd'), 'Enter a domain like nid.edu or student.nift.ac.in, without the @ part before it.');
+      if (PERSONAL.test(dm)) return bad($('#s-dd'), 'That\'s a personal email provider. Only institute domains can verify students.');
+      if (taken(dm)) return bad($('#s-dd'), '@' + dm + ' is already on the list.');
+      if (d.alumni.some(function (x) { return x.d === dm; })) return bad($('#s-dd'), '@' + dm + ' is an alumni domain. Students and alumni need different domains.');
+      d.student.push({ id: null, d: dm, inst: sel === 'new' ? '' : sel, name: sel === 'new' ? nm : '', on: true, new: sel === 'new' });
+      $('#s-doms').innerHTML = domRows(); bindDoms(); $('#s-dd').value = ''; $('#s-dn').value = ''; $('#s-di').value = ''; $('#s-dn').hidden = true; upd();
+      toast('@' + dm + ' is added. Save settings to start sending codes to it.', { t: 'Domain added', i: 'mail' });
+    });
     $('#s-su').addEventListener('change', function (e) { s.signups = e.target.checked; $('#s-pm').hidden = s.signups; upd(); });
     $('#s-pm').addEventListener('input', function (e) { s.pause_msg = e.target.value; upd(); });
     $('#s-bn').addEventListener('change', function (e) { s.banner_on = e.target.checked; $('#s-bm').hidden = !s.banner_on; upd(); });
@@ -219,15 +295,28 @@
     $('#s-goal').addEventListener('input', function (e) { s.goal = Math.max(0, Math.round(+e.target.value || 0)); upd(); });
     $('#s-save').addEventListener('click', function () {
       var ks = diff(); if (!ks.length) return;
-      var send = {}; ks.forEach(function (k) { send[k] = s[k]; });
+      var send = {}; ks.forEach(function (k) { if (k !== 'dom') send[k] = s[k]; });
       var b = $('#s-save'); b.disabled = true;
-      rpc('admin_save_settings', { p: send }).then(function () {
-        G.cur = null; return Promise.all([rpc('admin_get_settings'), rpc('admin_overview')]);
+      var ops = [];
+      if (ks.indexOf('dom') >= 0) {
+        var keep = {}; d.student.concat(d.alumni).forEach(function (x) { if (x.id) keep[x.id] = x; });
+        G.dom.student.concat(G.dom.alumni).forEach(function (o) {
+          var n = keep[o.id];
+          if (!n) ops.push(function () { return rpc('admin_remove_domain', { p_id: o.id }); });
+          else if (n.on !== o.on) ops.push(function () { return rpc('admin_set_domain', { p_id: o.id, p_on: n.on }); });
+        });
+        [['student', d.student], ['alumni', d.alumni]].forEach(function (g) { g[1].forEach(function (x) { if (!x.id) ops.push(function () { return rpc('admin_add_domain', { p_kind: g[0], p_institute: x.inst || 'new', p_name: x.inst ? null : x.name, p_domain: x.d, p_first: g[0] === 'alumni' ? (x.from || 0) : 0 }); }); }); });
+      }
+      var chain = Object.keys(send).length ? rpc('admin_save_settings', { p: send }) : Promise.resolve();
+      ops.forEach(function (op) { chain = chain.then(op); });
+      chain.then(function () {
+        G.cur = null; return Promise.all([rpc('admin_get_settings'), rpc('admin_overview'), rpc('admin_domains'), A.sb.from('institutes').select('id,short,name,grp,email_domain,campuses,branches,codes_enabled').order('short')]);
       }).then(function (r) {
-        G.cur = r[0]; ST.ov = r[1];
+        G.cur = r[0]; ST.ov = r[1]; G.dom = r[2];
+        if (!r[3].error) { ST.instRows = r[3].data || []; ST.insts = {}; ST.instRows.forEach(function (i) { ST.insts[i.id] = i.short; }); }
         if (ST.view === 'settings') renderSettings();
         toast(ks.map(function (k) { return label[k]; }).join(', ') + '.', { t: 'Settings saved' });
-      }).catch(function (e) { b.disabled = false; A.fail(e); });
+      }).catch(function (e) { b.disabled = false; G.cur = G.cur || null; A.fail(e); if (G.cur === null) { rpc('admin_get_settings').then(function (x) { G.cur = x; return rpc('admin_domains'); }).then(function (x) { G.dom = x; if (ST.view === 'settings') renderSettings(); }, function () {}); } });
     });
   }
   A.register('settings', { render: renderSettings });

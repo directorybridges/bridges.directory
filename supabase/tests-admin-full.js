@@ -29,6 +29,8 @@ const uid = () => crypto.randomUUID();
   const expectErr = async (name, fn, re) => { const m = await err(fn); ok(name, m && re.test(m), 'got: ' + m); };
 
   await q('begin');
+    // the live settings can have been changed by the client: start every check from the documented defaults (rolled back at the end)
+    await q(`update public.settings set value = 'week' where key = 'contact_period'`); await q(`update public.settings set value = '5' where key = 'weekly_contacts'`); await q(`update public.settings set value = '' where key like 'contact_limit_%'`);
   try {
     const mk = async (email) => { await root(); const id = uid(); emails[id] = email; await q(`insert into auth.users (id, email, aud, role) values ($1,$2,'authenticated','authenticated')`, [id, email]); return id; };
     const addProfile = async (id, kind, name, inst = 'iitb', extra = {}) => {
@@ -323,7 +325,7 @@ const uid = () => crypto.randomUUID();
     await expectErr('a blocked Google account cannot sign up', () => q(`insert into public.profiles (id, kind, name, institute_id) values ($1,'student','TEST Blocked','iitb')`, [BU]), /account_blocked/);
     await as(OWN);
     const sl = (await q(`select detail from public.admin_list_log('24h','admin','Changed settings',null,10)`)).rows.map(r => r.detail).join('|');
-    ok('settings changes are logged with what changed', /Contacts per week/.test(sl) && /Sign-ups/.test(sl) && /Institute emails/.test(sl), sl);
+    ok('settings changes are logged with what changed', /Contact limit|Contacts per week/.test(sl) && /Sign-ups/.test(sl) && /Institute emails/.test(sl), sl);
 
     // ---------------------------------------------------------------- admin invites (email + one-time code for a chosen college)
     await root();
@@ -364,7 +366,7 @@ const uid = () => crypto.randomUUID();
     const ck = (await q(`select public.check_referral(' testalm-1 ') r`)).rows[0].r;
     ok('landing: anon can check a code; spaces, dashes and case are ignored', ck.ok === true && ck.kind === 'alum' && ck.institute_id === 'iitb' && /IIT/.test(ck.institute_name), JSON.stringify(ck));
     ok('landing: an admin invite shows no person name', ck.by === null || ck.by === undefined);
-    ok('landing: the check shows nothing but kind, institute and first name', Object.keys(ck).sort().join() === 'by,institute_id,institute_name,institute_short,kind,ok' || Object.keys(ck).sort().join() === 'institute_id,institute_name,institute_short,kind,ok', Object.keys(ck).join());
+    ok('landing: the check shows nothing but kind, institute and first name', Object.keys(ck).sort().join() === 'by,by_avatar,by_full,institute_id,institute_name,institute_short,kind,ok' || Object.keys(ck).sort().join() === 'by,institute_id,institute_name,institute_short,kind,ok' || Object.keys(ck).sort().join() === 'institute_id,institute_name,institute_short,kind,ok', Object.keys(ck).join());
     ok('landing: a wrong code says no', (await q(`select public.check_referral('NOSUCH99') r`)).rows[0].r.ok === false);
     ok('landing: a too-short or too-long code says no', (await q(`select public.check_referral('ab') r`)).rows[0].r.ok === false && (await q(`select public.check_referral('ABCDEFGHIJKLMNOPQ') r`)).rows[0].r.ok === false);
     await root();

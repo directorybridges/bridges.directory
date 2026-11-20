@@ -201,7 +201,9 @@
     bad_email: 'That email address does not look right.',
     bad_kind: 'The type must be student or alum.',
     bad_institute: 'Pick an institute from the list.',
-    bad_branch: 'The branch is too long.',
+    bad_branch: 'Add the branch (up to 60 characters).',
+    already_added: 'That institute is already on this profile.',
+    too_many_institutes: 'A profile can have at most five extra institutes.',
     bad_experience: 'The experience list is not valid.',
     bad_status: 'That status is not allowed.',
     bad_role: 'That role cannot be given this way.',
@@ -224,7 +226,13 @@
     no_free_id: 'No free faculty ID is left. Please tell the developer.',
     signups_paused: 'Sign-ups are paused.',
     account_blocked: 'This account is blocked.',
-    codes_off: 'Email codes are switched off for this institute.'
+    codes_off: 'Email codes are switched off for this institute.',
+    bad_domain: 'That does not look like an email domain. Use something like alumni.iitb.ac.in, without the part before the @.',
+    personal_domain: 'That is a personal email provider. Only institute domains can verify people.',
+    domain_exists: 'That domain is already on a list. Students and alumni need different domains.',
+    bad_name: 'Type the new institute\'s name (up to 60 letters).',
+    institute_exists: 'That institute is already listed. Pick it from the list instead.',
+    bad_batch: 'Enter the first graduating batch, like 2026, or leave it blank.'
   };
   function friendly(e) {
     var m = (e && (e.message || e.error_description)) || String(e);

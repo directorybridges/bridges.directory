@@ -286,6 +286,10 @@ details.lg[open] > summary{background:var(--canvas)}
 .doms{display:grid;border:1px solid var(--line);border-radius:10px;overflow:hidden}
 .doms label{display:flex;align-items:center;gap:var(--sp-m);padding:10px var(--sp-m);border-top:1px solid var(--line);cursor:pointer}.doms label:first-child{border-top:0}
 .doms label span{flex:1;min-width:0}.doms code{color:var(--muted);font-size:.75rem}
+.doms .pill{margin-left:4px;vertical-align:1px}.dom-x .dom-rm{flex:none;width:32px;padding:0;color:var(--muted)}.dom-x .dom-rm:hover{color:var(--neg-fg)}
+.dom-add{display:grid;gap:6px}.dom-f{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:var(--sp-xs)}.dom-f #s-dn,.dom-f #s-an{grid-column:1 / -1;grid-row:2}.dom-f.a4{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 120px auto}
+.dom-in{display:flex;align-items:center;border:1px solid var(--line-strong);border-radius:8px;background:var(--surface);padding-left:10px}.dom-in span{color:var(--muted)}.dom-in .input{border:0;background:none;padding-left:4px;box-shadow:none}.dom-in:focus-within{box-shadow:0 0 0 3px var(--ring);border-color:var(--ink)}
+@media (max-width:720px){.dom-f{grid-template-columns:1fr}.dom-f #s-dn,.dom-f #s-an{grid-row:auto}.dom-f.a4{grid-template-columns:1fr}.dom-f .btn{justify-self:start}}
 .savebar{position:sticky;bottom:0;display:flex;justify-content:flex-end;gap:var(--sp-s);align-items:center;padding:var(--sp-m) var(--sp-l);border-top:1px solid var(--line);background:color-mix(in srgb,var(--surface) 92%,transparent);backdrop-filter:blur(8px);border-radius:0 0 14px 14px}
 .savebar .help{margin-right:auto}
 
@@ -542,7 +546,7 @@ function seed(){
     {id:'t2', name:'Nisha Pawar', email:'nisha@bridges.directory', role:'Admin', last:ago(1.4)},
     {id:'t3', name:'Kunal Mehta', email:'kunal@bridges.directory', role:'Moderator', last:ago(.2)},
     {id:'t4', name:'Farah Siddiqui', email:'farah@bridges.directory', role:'Support', last:ago(3.2)}];
-  const settings = {limit:5, approvals:2, signups:true, pauseMsg:'Sign-ups are paused for a few days while we check new listings.', domains:Object.fromEntries(INST.map(i => [i.id, true])), goal:10000, banner:false, bannerMsg:''};
+  const settings = {limit:5, approvals:2, signups:true, pauseMsg:'Sign-ups are paused for a few days while we check new listings.', domains:Object.fromEntries(INST.map(i => [i.id, true])), extraDoms:[], alumDoms:ALUM_SEED(), goal:10000, banner:false, bannerMsg:''};
   /* activity: two weeks of sign-ins, contacts, edits and team actions */
   const L = [], ip = () => [49, 103, 117, 157, 182][Math.floor(R() * 5)]+'.'+Math.floor(R() * 255)+'.x.x';
   const add = (d, o) => L.push(Object.assign({at:ago(d), dev:pick(DEV), ip:ip(), target:'', detail:''}, o));
@@ -575,7 +579,7 @@ function seed(){
 
 /* ---------- state ---------- */
 const KEY = 'bridges-admin-v2';
-let D = (() => { try { const d = JSON.parse(localStorage.getItem(KEY)); if(d && d.v === 2){ d.members.forEach(normLinks); d.v = 3; } if(d && d.v === 3) return d; } catch(e){} return seed(); })();
+let D = (() => { try { const d = JSON.parse(localStorage.getItem(KEY)); if(d && d.v === 2){ d.members.forEach(normLinks); d.v = 3; } if(d && d.v === 3){ if(!d.settings.extraDoms) d.settings.extraDoms = []; if(!d.settings.alumDoms) d.settings.alumDoms = ALUM_SEED(); return d; } } catch(e){} return seed(); })();
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(D)); } catch(e){} };
 const S = {as:'Owner', mf:{q:'', kind:'all', g:'', st:''}, ff:{q:''}, lf:{t:'', q:'', r:'7'}, lmax:60, qf:'pending', rf:'open', page:'home', draft:{}, set:null};
 const ME = () => D.team.find(t => t.you);
@@ -1120,6 +1124,23 @@ function vRoles(){
 }
 
 /* ---------- settings ---------- */
+/* alumni email domains: IITs issue them at graduation, NIFT from the batch of 2026 */
+function ALUM_SEED(){ return [['nift', 'alumni.nift.ac.in', 2026], ['iitb', 'alumni.iitb.ac.in'], ['iitd', 'alumni.iitd.ac.in'], ['iitg', 'alumni.iitg.ac.in'], ['iith', 'alumni.iith.ac.in'], ['iiti', 'alumni.iiti.ac.in'], ['iitj', 'alumni.iitj.ac.in'], ['iitk', 'alumni.iitk.ac.in'], ['iitr', 'alumni.iitr.ac.in']]
+  .map(([inst, d, from]) => ({d, inst, name:'', from:from || 0, on:true})); }
+function alumRows(s){
+  return s.alumDoms.map((x, k) => { const nm = x.inst ? IB[x.inst].s : x.name;
+    return '<label class="dom-x"><span><b style="font-weight:500">'+esc(nm)+'</b> <code>@'+esc(x.d)+'</code>'+(x.from ? ' <span class="pill">Batch of '+x.from+' on</span>' : '')+(x.inst ? '' : ' <span class="pill warn">New institute</span>')+'</span>'
+      + '<button class="btn ghost sm dom-rm" type="button" data-arm="'+k+'" aria-label="Remove @'+esc(x.d)+'" title="Remove">'+ico('trash', 15)+'</button>'
+      + '<span class="tgl" style="flex:none"><input type="checkbox" data-adom="'+k+'" aria-label="'+esc(nm)+' @'+esc(x.d)+'"'+(x.on ? ' checked' : '')+'></span></label>'; }).join('')
+    || '<p class="help" style="padding:10px var(--sp-m)">No alumni domains yet.</p>';
+}
+const DOM_RE = /^(?=.{4,80}$)([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/;
+function domRows(s){
+  return INST.map(i => '<label><span><b style="font-weight:500">'+esc(i.s)+'</b> <code>@'+esc(i.d)+'</code></span><span class="tgl" style="flex:none"><input type="checkbox" data-dom="'+i.id+'" aria-label="'+esc(i.s)+' @'+esc(i.d)+'"'+(s.domains[i.id] !== false ? ' checked' : '')+'></span></label>').join('')
+    + s.extraDoms.map((x, k) => '<label class="dom-x"><span><b style="font-weight:500">'+esc(x.inst ? IB[x.inst].s : x.name)+'</b> <code>@'+esc(x.d)+'</code> <span class="pill'+(x.inst ? '' : ' warn')+'">'+(x.inst ? 'Added' : 'New institute')+'</span></span>'
+      + '<button class="btn ghost sm dom-rm" type="button" data-drm="'+k+'" aria-label="Remove @'+esc(x.d)+'" title="Remove">'+ico('trash', 15)+'</button>'
+      + '<span class="tgl" style="flex:none"><input type="checkbox" data-xdom="'+k+'" aria-label="'+esc(x.inst ? IB[x.inst].s : x.name)+' @'+esc(x.d)+'"'+(x.on ? ' checked' : '')+'></span></label>').join('');
+}
 function vSettings(){
   const s = S.set = JSON.parse(JSON.stringify(D.settings)), E = can('settings');
   const row = (t, p, ctl) => '<div class="set"><div><b>'+t+'</b><p class="help">'+p+'</p></div><div class="ctl">'+ctl+'</div></div>';
@@ -1127,19 +1148,79 @@ function vSettings(){
     + '<section class="card">'
     + row('Contacts per week', 'How many contacts each member can open in a week. You can change it for one person from their profile.', '<input class="input" id="s-limit" type="number" min="1" max="30" value="'+s.limit+'" style="max-width:120px">')
     + row('Volunteer approvals', 'How many volunteers must approve a certificate before someone is listed.', '<div class="seg" role="group" aria-label="Approvals needed">'+[1, 2, 3].map(n => '<button type="button" data-ap="'+n+'" aria-pressed="'+(s.approvals === n)+'">'+n+'</button>').join('')+'</div>')
-    + row('Institute emails for codes', 'Students with an address on these domains can verify with a 6-digit code. Turn one off to send that institute\'s students to certificate checks instead.', '<div class="doms">'+INST.map(i => '<label><span><b style="font-weight:500">'+esc(i.s)+'</b> <code>@'+esc(i.d)+'</code></span><span class="tgl" style="flex:none"><input type="checkbox" data-dom="'+i.id+'" aria-label="'+esc(i.s)+'"'+(s.domains[i.id] !== false ? ' checked' : '')+'></span></label>').join('')+'</div>')
+    + row('Institute emails for codes', 'Students with an address on these domains can verify with a 6-digit code. Turn one off to send that institute\'s students to certificate checks instead. Add a domain when an institute gets a new one, or when a new college joins.', '<div class="doms" id="s-doms">'+domRows(s)+'</div>'
+      + '<div class="dom-add"><div class="dom-f">'+'<select class="input" id="s-di" aria-label="Institute for the new domain"><option value="">Choose an institute</option>'+INST.map(i => '<option value="'+i.id+'">'+esc(i.s)+'</option>').join('')+'<option value="new">A new institute…</option></select>'
+      + '<input class="input" id="s-dn" placeholder="Institute name, e.g. NID Andhra Pradesh" maxlength="60" aria-label="New institute name" hidden>'
+      + '<label class="dom-in"><span>@</span><input class="input" id="s-dd" placeholder="newcollege.ac.in" autocomplete="off" spellcheck="false" aria-label="Email domain"></label>'
+      + '<button class="btn secondary" type="button" id="s-dadd">'+ico('plus', 15)+'Add domain</button></div><p class="err" id="s-derr" role="alert"></p></div>')
+    + row('Alumni emails for codes', 'Alumni with an address on these domains can verify with a 6-digit code instead of a certificate. If an institute only started issuing them recently, set the first batch that got one.', '<div class="doms" id="s-adoms">'+alumRows(s)+'</div>'
+      + '<div class="dom-add"><div class="dom-f a4">'+'<select class="input" id="s-ai" aria-label="Institute for the new alumni domain"><option value="">Choose an institute</option>'+INST.map(i => '<option value="'+i.id+'">'+esc(i.s)+'</option>').join('')+'<option value="new">A new institute…</option></select>'
+      + '<input class="input" id="s-an" placeholder="Institute name" maxlength="60" aria-label="New institute name" hidden>'
+      + '<label class="dom-in"><span>@</span><input class="input" id="s-ad" placeholder="alumni.college.ac.in" autocomplete="off" spellcheck="false" aria-label="Alumni email domain"></label>'
+      + '<input class="input" id="s-ay" type="number" min="1950" max="2100" placeholder="First batch" title="Optional: the first graduating batch that got one" aria-label="First graduating batch with an alumni email (optional)">'
+      + '<button class="btn secondary" type="button" id="s-aadd">'+ico('plus', 15)+'Add domain</button></div><p class="err" id="s-aerr" role="alert"></p></div>')
     + row('Sign-ups', 'Pause new sign-ups without affecting existing members.', '<label class="tgl"><span><b>Open for new members</b></span><input type="checkbox" id="s-su"'+(s.signups ? ' checked' : '')+'></label><textarea class="input" id="s-pm" rows="2" aria-label="Message while paused"'+(s.signups ? ' hidden' : '')+'>'+esc(s.pauseMsg)+'</textarea>')
     + row('Site notice', 'A short message at the top of every page, for maintenance or news.', '<label class="tgl"><span><b>Show a notice</b></span><input type="checkbox" id="s-bn"'+(s.banner ? ' checked' : '')+'></label><input class="input" id="s-bm" placeholder="e.g. Bridges will be down for 10 minutes at 11 pm tonight." value="'+esc(s.bannerMsg)+'"'+(s.banner ? '' : ' hidden')+'>')
     + row('Yearly contribution goal', 'Shown on the Contribute page and the home tile.', '<div style="display:flex;align-items:center;gap:8px"><span class="muted">₹</span><input class="input" id="s-goal" type="number" min="0" step="500" value="'+s.goal+'" style="max-width:160px"></div>')
     + row('Demo data', 'Puts every member, account, report and log entry back the way the prototype started.', '<button class="btn secondary neg" type="button" id="s-reset" style="justify-self:start">'+ico('refresh', 15)+'Reset demo data</button>')
     + '<div class="savebar"><span class="help" id="s-n">No unsaved changes</span><button class="btn primary" type="button" id="s-save" disabled>Save settings</button></div></section>';
-  if(!E) $$('#view input,#view textarea,#view [data-ap],#s-save,#s-reset').forEach(i => i.disabled = true);
-  const label = {limit:'Contacts per week', approvals:'Volunteer approvals', domains:'Institute emails', signups:'Sign-ups', pauseMsg:'Pause message', banner:'Site notice', bannerMsg:'Notice text', goal:'Contribution goal'};
+  if(!E) $$('#view input,#view textarea,#view select,#view [data-ap],#s-save,#s-reset,#s-dadd,#s-aadd').forEach(i => i.disabled = true);
+  const label = {limit:'Contacts per week', approvals:'Volunteer approvals', domains:'Institute emails', extraDoms:'Added institute emails', alumDoms:'Alumni emails', signups:'Sign-ups', pauseMsg:'Pause message', banner:'Site notice', bannerMsg:'Notice text', goal:'Contribution goal'};
   const diff = () => Object.keys(label).filter(k => JSON.stringify(s[k]) !== JSON.stringify(D.settings[k]));
   const upd = () => { const n = diff().length; $('#s-n').textContent = n ? n+' unsaved change'+(n === 1 ? '' : 's') : 'No unsaved changes'; $('#s-save').disabled = !n || !E; };
   $('#s-limit').addEventListener('input', e => { s.limit = Math.max(1, Math.min(30, +e.target.value || 1)); upd(); });
   $$('[data-ap]').forEach(b => b.addEventListener('click', () => { s.approvals = +b.dataset.ap; $$('[data-ap]').forEach(x => x.setAttribute('aria-pressed', x === b)); upd(); }));
-  $$('[data-dom]').forEach(c => c.addEventListener('change', () => { s.domains[c.dataset.dom] = c.checked; upd(); }));
+  const bindDoms = () => {
+    $$('[data-dom]').forEach(c => c.addEventListener('change', () => { s.domains[c.dataset.dom] = c.checked; upd(); }));
+    $$('[data-xdom]').forEach(c => c.addEventListener('change', () => { s.extraDoms[+c.dataset.xdom].on = c.checked; upd(); }));
+    $$('[data-drm]').forEach(b => b.addEventListener('click', e => { e.preventDefault(); s.extraDoms.splice(+b.dataset.drm, 1); $('#s-doms').innerHTML = domRows(s); bindDoms(); upd(); }));
+    if(!E) $$('#s-doms input,#s-doms button').forEach(i => i.disabled = true);
+  };
+  bindDoms();
+  const bindAlum = () => {
+    $$('[data-adom]').forEach(c => c.addEventListener('change', () => { s.alumDoms[+c.dataset.adom].on = c.checked; upd(); }));
+    $$('[data-arm]').forEach(b => b.addEventListener('click', e => { e.preventDefault(); s.alumDoms.splice(+b.dataset.arm, 1); $('#s-adoms').innerHTML = alumRows(s); bindAlum(); upd(); }));
+    if(!E) $$('#s-adoms input,#s-adoms button').forEach(i => i.disabled = true);
+  };
+  bindAlum();
+  $('#s-ai').addEventListener('change', e => { $('#s-an').hidden = e.target.value !== 'new'; if(e.target.value === 'new') $('#s-an').focus(); });
+  $('#s-ad').addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); $('#s-aadd').click(); } });
+  $('#s-aadd').addEventListener('click', () => {
+    const err = $('#s-aerr'), sel = $('#s-ai').value, nm = $('#s-an').value.trim(), yr = +$('#s-ay').value || 0, d = $('#s-ad').value.trim().toLowerCase().replace(/^.*@/, '').replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+    [$('#s-ai'), $('#s-an'), $('#s-ad'), $('#s-ay')].forEach(i => i.removeAttribute('aria-invalid')); err.textContent = '';
+    const bad = (el, m) => { el.setAttribute('aria-invalid', 'true'); el.focus(); err.textContent = m; };
+    if(!sel) return bad($('#s-ai'), 'Choose which institute gives out this alumni email.');
+    if(sel === 'new' && !nm) return bad($('#s-an'), 'Type the new institute\'s name.');
+    const dup = sel === 'new' && INST.find(i => i.s.toLowerCase() === nm.toLowerCase());
+    if(dup) return bad($('#s-an'), dup.s+' is already listed. Pick it from the list instead.');
+    if(!DOM_RE.test(d)) return bad($('#s-ad'), 'Enter a domain like alumni.iitb.ac.in, without the part before the @.');
+    if(/^(gmail|googlemail|yahoo|outlook|hotmail|live|icloud|proton|protonmail|rediffmail)\./.test(d)) return bad($('#s-ad'), 'That\'s a personal email provider. Only institute-issued alumni domains can verify.');
+    if(INST.find(i => i.d === d) || s.extraDoms.find(x => x.d === d)) return bad($('#s-ad'), '@'+d+' is on the student list. Students and alumni need different domains, or students could verify as alumni.');
+    if(s.alumDoms.find(x => x.d === d)) return bad($('#s-ad'), '@'+d+' is already on the list.');
+    if(yr && (yr < 1950 || yr > new Date().getFullYear() + 1)) return bad($('#s-ay'), 'Enter the first graduating batch, like 2026, or leave it blank.');
+    s.alumDoms.push({d, inst:sel === 'new' ? '' : sel, name:sel === 'new' ? nm : '', from:yr, on:true});
+    $('#s-adoms').innerHTML = alumRows(s); bindAlum(); ['#s-ad', '#s-an', '#s-ay', '#s-ai'].forEach(q => $(q).value = ''); $('#s-an').hidden = true; upd();
+    toast('@'+d+' is added. Save settings to start sending codes to it.', {t:'Alumni domain added', i:'mail'});
+  });
+  $('#s-di').addEventListener('change', e => { $('#s-dn').hidden = e.target.value !== 'new'; if(e.target.value === 'new') $('#s-dn').focus(); });
+  $('#s-dd').addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); $('#s-dadd').click(); } });
+  $('#s-dadd').addEventListener('click', () => {
+    const err = $('#s-derr'), sel = $('#s-di').value, nm = $('#s-dn').value.trim(), d = $('#s-dd').value.trim().toLowerCase().replace(/^@/, '').replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+    [$('#s-di'), $('#s-dn'), $('#s-dd')].forEach(i => i.removeAttribute('aria-invalid')); err.textContent = '';
+    const bad = (el, m) => { el.setAttribute('aria-invalid', 'true'); el.focus(); err.textContent = m; };
+    if(!sel) return bad($('#s-di'), 'Choose which institute this domain belongs to.');
+    if(sel === 'new' && !nm) return bad($('#s-dn'), 'Type the new institute\'s name.');
+    const dup = sel === 'new' && INST.find(i => i.s.toLowerCase() === nm.toLowerCase());
+    if(dup) return bad($('#s-dn'), dup.s+' is already listed. Pick it from the list instead.');
+    if(!DOM_RE.test(d)) return bad($('#s-dd'), 'Enter a domain like nid.edu or student.nift.ac.in, without the @ part before it.');
+    if(/^(gmail|googlemail|yahoo|outlook|hotmail|live|icloud|proton|protonmail|rediffmail)\./.test(d)) return bad($('#s-dd'), 'That\'s a personal email provider. Only institute domains can verify students.');
+    const taken = INST.find(i => i.d === d) || s.extraDoms.find(x => x.d === d);
+    if(taken) return bad($('#s-dd'), '@'+d+' is already on the list.');
+    if(s.alumDoms.find(x => x.d === d)) return bad($('#s-dd'), '@'+d+' is an alumni domain. Students and alumni need different domains.');
+    s.extraDoms.push({d, inst:sel === 'new' ? '' : sel, name:sel === 'new' ? nm : '', on:true, at:new Date().toISOString()});
+    $('#s-doms').innerHTML = domRows(s); bindDoms(); $('#s-dd').value = ''; $('#s-dn').value = ''; $('#s-di').value = ''; $('#s-dn').hidden = true; upd();
+    toast('@'+d+' is added. Save settings to start sending codes to it.', {t:'Domain added', i:'mail'});
+  });
   $('#s-su').addEventListener('change', e => { s.signups = e.target.checked; $('#s-pm').hidden = s.signups; upd(); });
   $('#s-pm').addEventListener('input', e => { s.pauseMsg = e.target.value; upd(); });
   $('#s-bn').addEventListener('change', e => { s.banner = e.target.checked; $('#s-bm').hidden = !s.banner; upd(); });

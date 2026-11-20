@@ -7,7 +7,7 @@
   var DATA = window.BADMIN_DATA || { PAGES: [], OPEN: [], OPEN_FOR: {} };
   var OPEN = DATA.OPEN || [];
 
-  var VM = { institute_email: 'Institute email code', certificate: 'Certificate', referral: 'Referral code' };
+  var VM = { institute_email: 'Institute email code', certificate: 'Certificate', referral: 'Referral code', alumni_email: 'Alumni email code', admin: 'An admin' };
   var KIND = { student: 'Student', alum: 'Alum', faculty: 'Faculty' };
   var EXP_T = { job: 'Job', venture: 'Own venture', free: 'Freelance' };
   var LINK_T = { portfolio: 'Portfolio', behance: 'Behance', website: 'Website', other: 'Other link' };
@@ -162,6 +162,7 @@
       '<div class="fld"><span class="label">Portfolio and links</span>' + linksEditor(m.links, dis) + '<span class="help">Up to ' + LINK_MAX + '. Members see them when they open this contact.</span></div>' +
       '<div class="fld"><span class="label">Happy to help with</span><div class="checks">' + OPEN.map(function (o, i) { return '<label><input type="checkbox" data-open="' + i + '"' + ((m.helps || []).indexOf(i) >= 0 ? ' checked' : '') + dis + '>' + esc(o) + '</label>'; }).join('') + '</div></div>' +
       '<div class="fld" id="e-xpw"' + (stu ? ' hidden' : '') + '><span class="label">Experience</span><div style="display:grid;gap:8px" id="e-xp">' + xp.map(xrow).join('') + '</div><button class="btn ghost sm" type="button" id="e-xadd" style="justify-self:start"' + dis + '>' + ico('plus', 14) + 'Add experience</button></div></div>' +
+      '<div class="sec" id="e-insts"><h4>Other institutes</h4><div id="e-ilist"><p class="help">Loading…</p></div></div>' +
       '<div class="sec"><h4>Sign-in and contact</h4><div class="fld"><label class="label" for="e-g">Google account</label><input class="input" id="e-g" type="email" value="' + esc(m.google_email) + '" disabled><span class="help">They sign in with this. It is managed by Google, so it cannot be changed here. If they lost access, they need to join again with a new account.</span></div>' +
       (stu ? '<div class="fld" id="e-iew"><label class="label" for="e-ie">Institute email</label><input class="input" id="e-ie" type="email" value="' + esc(m.email_institute || '') + '" placeholder="Not added"' + dis + '><span class="help">Verified with a one-time code. Members see it when they open this contact.</span></div>' : '') +
       '<div class="fld" id="e-cew"' + (stu ? ' hidden' : '') + '><label class="label" for="e-ce">Contact email</label><input class="input" id="e-ce" type="email" value="' + esc(m.email_personal || '') + '" placeholder="Same as the Google account"' + dis + '><span class="help">Members see this when they open the contact.</span></div></div>' +
@@ -180,6 +181,7 @@
       var box = $('#e-act', d); if (!box) return;
       box.innerHTML = rows.length ? '<div class="mini">' + rows.map(function (l) { return '<div><b style="font-weight:400">' + esc(l.target_id === m.id && l.who !== m.name ? l.who + ' · ' + l.act : l.act + (l.target ? ': ' + l.target : '')) + '</b><span>' + rel(l.at) + '</span></div>'; }).join('') + '</div>' : '<p class="help">Nothing in the last two weeks.</p>';
     }, function () { var box = $('#e-act', d); if (box) box.innerHTML = '<p class="help">Could not load the activity.</p>'; });
+    loadInsts(m, d, E);
     if ($('#e-limdef', d)) $('#e-limdef', d).addEventListener('click', function () { $('#e-limit', d).value = ''; $('#e-limit', d).focus(); });
     $('#e-inst', d).addEventListener('change', function (e) {
       var x = splitInst(e.target.value), i = inst(x.inst) || { branches: [] };
@@ -198,6 +200,67 @@
     if ($('#e-logs', d)) $('#e-logs', d).addEventListener('click', function () { ST.lq = m.name; A.go('logs'); });
     if ($('#e-del', d)) $('#e-del', d).addEventListener('click', function () { deleteMember(m); });
     if ($('#e-save', d)) $('#e-save', d).addEventListener('click', function () { saveMember(m, d, st); });
+  }
+
+
+  /* ------------------------------------------------------------------ a member's extra institutes (each change saves on its own) */
+  function loadInsts(m, d, E) {
+    var box = $('#e-ilist', d); if (!box) return;
+    var rows = [];
+    var draw = function () {
+      if (!$('#e-ilist', d)) return;
+      box.innerHTML = (rows.length ? '<div class="mini">' + rows.map(function (r) {
+        var st = r.kind === 'alum' ? 'Alum' : 'Student';
+        var how = r.verified ? 'Verified by ' + (VM[r.verify_method] || 'an admin').replace(/^An /, 'an ') : (r.request_status === 'pending' ? 'Waiting for approval' : 'Not verified yet');
+        return '<div><b style="font-weight:400">' + esc(r.short) + (r.campus ? ' ' + esc(r.campus) : '') + ' · ' + st + ' · ' + esc(r.branch) + ' · ' + esc(r.year) + '<br><span style="white-space:normal">' + esc(how) + '</span></b>' +
+          (E ? '<span><button class="btn ghost sm" type="button" data-ie="' + r.id + '">Change</button></span>' : '') + '</div>';
+      }).join('') + '</div>' : '<p class="help">None. This profile is only at the institute above.</p>') +
+        (E ? '<div id="e-iform"></div><button class="btn ghost sm" type="button" id="e-iadd" style="justify-self:start"' + (rows.length >= 5 ? ' disabled' : '') + '>' + ico('plus', 14) + 'Add an institute</button>' : '');
+      if (!E) return;
+      $('#e-iadd', d).addEventListener('click', function () { form(null); });
+      $$('[data-ie]', box).forEach(function (b) { b.addEventListener('click', function () { form(rows.filter(function (r) { return r.id === b.dataset.ie; })[0]); }); });
+    };
+    var load = function () {
+      return rpc('admin_member_institutes', { p_id: m.id }).then(function (r) { rows = r || []; draw(); }, function () { if ($('#e-ilist', d)) box.innerHTML = '<p class="help">Could not load the institutes.</p>'; });
+    };
+    var form = function (r) {
+      var w = $('#e-iform', d); if (!w) return;
+      var cur = r ? r.institute_id + (r.campus ? '|' + r.campus : '') : '';
+      var taken = [m.institute_id].concat(rows.filter(function (x) { return !r || x.id !== r.id; }).map(function (x) { return x.institute_id; }));
+      var opts = A.GROUPS.map(function (g) {
+        return '<optgroup label="' + g[1] + 's">' + ST.instRows.filter(function (i) { return i.grp === g[0] && taken.indexOf(i.id) < 0; }).map(function (i) {
+          var os = (i.campuses && i.campuses.length) ? i.campuses.map(function (c) { return [i.id + '|' + c, i.short + ' ' + c]; }) : [[i.id, i.short]];
+          return os.map(function (o) { return '<option value="' + esc(o[0]) + '"' + (o[0] === cur ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join('');
+        }).join('') + '</optgroup>';
+      }).join('');
+      var bs = function (i, c) { var l = ((i && i.branches) || []).slice(); if (c && l.indexOf(c) < 0) l.unshift(c); return l.map(function (b) { return '<option' + (b === c ? ' selected' : '') + '>' + esc(b) + '</option>'; }).join(''); };
+      w.innerHTML = '<div class="fld" style="border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:8px"><div class="grid2"><div class="fld"><label class="label" for="ei-i">Institute</label><select class="input" id="ei-i">' + opts + '</select></div>' +
+        '<div class="fld"><label class="label" for="ei-k">Status</label><select class="input" id="ei-k"><option value="student"' + (!r || r.kind === 'student' ? ' selected' : '') + '>Current student</option><option value="alum"' + (r && r.kind === 'alum' ? ' selected' : '') + '>Alum</option></select></div></div>' +
+        '<div class="grid2"><div class="fld"><label class="label" for="ei-b">Branch</label><select class="input" id="ei-b"></select></div><div class="fld"><label class="label" for="ei-y">Year</label><input class="input" id="ei-y" type="number" min="1970" max="2032" value="' + esc(r ? r.year : '') + '"></div></div>' +
+        '<label class="tgl"><span><b>Verified at this institute</b><span class="help">An admin adding it counts as checked. Turn off to take it out of the directory.</span></span><input type="checkbox" id="ei-v"' + (!r || r.verified ? ' checked' : '') + '></label>' +
+        '<p class="err" id="ei-err" role="alert"></p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary sm" type="button" id="ei-save">' + (r ? 'Save institute' : 'Add institute') + '</button>' +
+        (r ? '<button class="btn secondary neg sm" type="button" id="ei-del">Remove</button>' : '') + '<button class="btn ghost sm" type="button" id="ei-x">Cancel</button></div></div>';
+      var fillB = function (c) { var x = splitInst($('#ei-i', d).value); $('#ei-b', d).innerHTML = bs(inst(x.inst), c); };
+      fillB(r ? r.branch : '');
+      $('#ei-i', d).addEventListener('change', function () { fillB(''); });
+      $('#ei-x', d).addEventListener('click', function () { w.innerHTML = ''; });
+      var done = function (msg) { w.innerHTML = ''; toast(msg, { t: 'Saved' }); M.rows = null; return load(); };
+      var bail = function (e) { if (/admins_only/.test(e.message || '')) return A.fail(e); $('#ei-err', d).textContent = A.friendly(e); $$('#e-iform button', d).forEach(function (b) { b.disabled = false; }); };
+      $('#ei-save', d).addEventListener('click', function () {
+        var x = splitInst($('#ei-i', d).value), y = parseInt($('#ei-y', d).value, 10), er = $('#ei-err', d);
+        if (!x.inst) { er.textContent = 'Pick an institute.'; return; }
+        if (!y || y < 1970 || y > 2032) { er.textContent = 'Enter a year between 1970 and 2032.'; return; }
+        if (!$('#ei-b', d).value) { er.textContent = 'Pick a branch.'; return; }
+        var p = { institute_id: x.inst, campus: x.campus, kind: $('#ei-k', d).value, branch: $('#ei-b', d).value, year: y, verified: $('#ei-v', d).checked };
+        $$('#e-iform button', d).forEach(function (b) { b.disabled = true; });
+        rpc('admin_set_member_institute', { p_id: m.id, p_link: r ? r.id : null, p: p }).then(function () { return done(r ? 'Institute updated.' : 'Institute added.'); }, bail);
+      });
+      if (r) $('#ei-del', d).addEventListener('click', function () {
+        $$('#e-iform button', d).forEach(function (b) { b.disabled = true; });
+        rpc('admin_remove_member_institute', { p_link: r.id }).then(function () { return done('Institute removed.'); }, bail);
+      });
+    };
+    load();
   }
 
   function saveMember(m, d, st) {

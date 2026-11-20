@@ -89,7 +89,9 @@
       number_mismatch: 'That does not match the number you registered.', not_a_volunteer: 'You are not a volunteer.', volunteers_only: 'Only volunteers can do that.',
       own_application: 'You cannot review your own application.', already_reviewed: 'You have already reviewed this one.', not_pending: 'Someone has already decided this one.',
       signups_paused: 'Sign-ups are paused right now. Please try again later.', account_blocked: 'This account cannot be used on Bridges.directory. Write to us if you think this is a mistake.', codes_off: 'Email codes are switched off for your institute right now. Upload your certificate instead.',
-      file_deleted: 'That file has already been deleted.', upload_failed: 'The file did not go through. Check your connection and try again.', database_error: 'Something went wrong on our side. Please try again.', server_error: 'Something went wrong on our side. Please try again.', verified_alums_only: 'Only verified alumni can refer.', bad_email: 'Enter a valid email address.', amount_too_small: 'The smallest contribution is ₹10.'
+      file_deleted: 'That file has already been deleted.', upload_failed: 'The file did not go through. Check your connection and try again.', database_error: 'Something went wrong on our side. Please try again.', server_error: 'Something went wrong on our side. Please try again.', verified_alums_only: 'Only verified alumni can refer.', bad_email: 'Enter a valid email address.', amount_too_small: 'The smallest contribution is ₹10.',
+      alums_only: 'Only alumni can do that.', bad_fields: 'Pick up to 3 fields.', alumni_domain_mismatch: 'That is not an alumni email we recognise for your institute.',
+      alumni_batch_too_early: 'Alumni emails for your institute start with a later batch. Verify with a certificate or a referral code instead.', alumni_email_taken: 'That alumni email is already on a profile. Log in with the Google account you joined with.'
     };
     function why(e) {
       var m = (e && e.message) || '';
@@ -107,14 +109,15 @@
     document.head.appendChild(st);
 
     /* ---------- shapes: database row -> the prototype's person ---------- */
-    var VM = { institute_email: 'email', certificate: 'documents', referral: 'referral' };
+    var VM = { institute_email: 'email', certificate: 'documents', referral: 'referral', alumni_email: 'alumni' };
     var normLinks = function (l) { return (Array.isArray(l) ? l : []).map(function (x) { return { t: x.t || 'portfolio', url: x.url || '', name: x.name || '' }; }).filter(function (x) { return x.url; }); };
     function mapRow(r) {
       var exp = Array.isArray(r.experiences) ? r.experiences : [], x = exp[0] || {};
       return { id: r.id, kind: r.kind, name: r.name, inst: r.institute_id || '', campus: r.campus || '', branch: r.branch || '', year: r.year || 0,
         works: r.kind === 'alum' ? (x.f != null ? +x.f : 0) : -1, role: x.role || '', org: x.org || '', exp: r.kind === 'alum' ? exp : [], open: r.helps || [],
         v: VM[r.verify_method] || 'email', email: '', email2: '', cemail: '', av: r.avatar && typeof r.avatar === 'object' ? r.avatar : {}, links: [], site: '',
-        vrec: { at: r.verified_at ? new Date(r.verified_at) : new Date(), r: [] }, vol: !!r.is_volunteer };
+        vrec: { at: r.verified_at ? new Date(r.verified_at) : new Date(), r: [] }, vol: !!r.is_volunteer,
+        fields: r.kind === 'student' ? (Array.isArray(r.fields) ? r.fields : []) : undefined };
     }
     function mapVapp(a) {
       if (!a) return null;
@@ -135,6 +138,7 @@
         p.email = priv.email_institute || g; p.email2 = priv.email_institute ? g : '';
       } else {
         p.email = g; p.cemail = priv.email_personal && priv.email_personal.toLowerCase() !== g ? priv.email_personal : '';
+        if (priv.email_alumni) p.aemail = priv.email_alumni;      // shown to the member only; others see just "Verified by alumni email"
       }
       p.googleEmail = g; p.links = normLinks(priv.links); p.volPhone = priv.vol_phone || ''; p.volApp = mapVapp(stt.vapp); p.fresh = false;
       return p;
@@ -170,7 +174,7 @@
     async function dirVersion() { try { var v = await rpc('directory_version'); return v ? v.n + '|' + v.at : ''; } catch (e) { return ''; } }
     async function loadDirectory() {
       var ver = await dirVersion();
-      var rows = [], from = 0, size = 1000, cols = 'id,kind,name,institute_id,campus,branch,year,helps,avatar,experiences,verify_method,verified_at,is_volunteer,listed,verified';
+      var rows = [], from = 0, size = 1000, cols = 'id,kind,name,institute_id,campus,branch,year,helps,avatar,experiences,fields,verify_method,verified_at,is_volunteer,listed,verified';
       for (;;) {
         var r = ok(await sb.from('profiles').select(cols).eq('listed', true).eq('verified', true).eq('status', 'active').order('name').order('id').range(from, from + size - 1));
         rows = rows.concat(r); if (r.length < size) break; from += size;
@@ -226,11 +230,11 @@
     /* ---------- who is signed in, and what do they need to do next ---------- */
     function clearMember() {
       S.user = null; S.reveals = {}; people.length = 0; queue.length = 0; BR.contacts = {}; BR.uid = null; BR.dirVer = '';
-      S.join = { step: 1, kind: 'student', d: null, method: 'email', file: null, consent: false, qid: null, viaInstant: false, code: '', otp: null, g: '', gn: '' };
+      S.join = { step: 1, kind: 'student', mode: '', ref: null, rcode: '', rerr: '', d: null, method: 'email', file: null, consent: false, qid: null, viaInstant: false, code: '', otp: null, g: '', gn: '' };
     }
     function dFromRow(row, priv, g) {
       var exp = Array.isArray(row.experiences) ? row.experiences : [], x = exp[0] || {};
-      return { name: row.name, inst: row.institute_id, campus: row.campus || '', branch: row.branch || '', year: String(row.year || ''), email: g, open: row.helps || [], links: normLinks(priv.links),
+      return { fields: Array.isArray(row.fields) ? row.fields : [], name: row.name, inst: row.institute_id, campus: row.campus || '', branch: row.branch || '', year: String(row.year || ''), email: g, open: row.helps || [], links: normLinks(priv.links),
         exp: exp, works: x.f != null ? +x.f : 0, role: x.role || '', org: x.org || '', av: row.avatar || 0, cemail: '', email2: '' };
     }
     async function settle() {
@@ -253,7 +257,7 @@
           if (rs.status === 'pending') {
             queue.push({ id: 'q-me', kind: me.kind, name: me.name, inst: me.inst, campus: me.campus, branch: me.branch, year: me.year, approvals: [], status: 'pending', mine: true, file: '', at: new Date(rs.submitted_at) });
             J.qid = 'q-me'; J.step = 3;
-          } else { J.step = 2; J.method = me.kind === 'student' ? 'email' : 'upload'; if (rs.status === 'rejected') J.method = 'upload', BR.note = rejectNote(rs.reason); }
+          } else { J.step = 2; J.method = me.kind === 'student' ? 'email' : (F('alumOk', J.d) ? 'alumni' : 'upload'); if (rs.status === 'rejected') J.method = 'upload', BR.note = rejectNote(rs.reason); }
           return 'verify';
         }
         S.user = me; BR.uid = me.id;
@@ -330,9 +334,11 @@
       }
       if (!d.open.length) return bad('Pick at least one thing you can help with.', '#jf1 .checks input');
       if (!X('checkLinks')($('#j-links'), err)) return;
+      /* students pick up to 3 fields; if they skip it, the field that fits their branch is used (same as the prototype) */
+      if (J.kind === 'student' && !(d.fields && d.fields.length)) d.fields = X('seedFields')({ branch: d.branch }, 1);
       var btn = $('#jf1 button[type="submit"]'); if (btn) btn.disabled = true;
       try {
-        await rpc('create_my_profile', { p: { kind: J.kind, name: d.name, institute_id: d.inst, campus: d.campus || '', branch: d.branch, year: +d.year, helps: d.open,
+        await rpc('create_my_profile', { p: { kind: J.kind, name: d.name, institute_id: d.inst, campus: d.campus || '', branch: d.branch, year: +d.year, helps: d.open, fields: J.kind === 'student' ? (d.fields || []) : [],
           avatar: d.av && typeof d.av === 'object' ? d.av : {}, experiences: J.kind === 'alum' ? d.exp : [], links: d.links || [],
           email_personal: J.kind === 'student' ? J.g : (d.cemail || J.g) } });
       } catch (e) { if (btn) btn.disabled = false; if (e.message !== 'profile_exists') { err.textContent = why(e); return; } }
@@ -374,10 +380,38 @@
         } catch (e) { btn.disabled = false; joinErr(e.message === 'bad_type' ? 'The hidden copy was not an image. Try again.' : why(e)); }
         return;
       }
+      if (J.method === 'alumni') {
+        /* alumni email: a 6-digit code to the address the institute gave at graduation (only institutes on the admin's list, only batches that got one) */
+        var ad = X('alumDomFor')(d.inst);
+        if (!J.otp) {
+          var ai = $('#j-aemail'), at = (ai.value || '').trim().toLowerCase();
+          function abad(m) { joinErr(m); ai.setAttribute('aria-invalid', 'true'); ai.focus(); }
+          ai.removeAttribute('aria-invalid');
+          if (!ad || !F('alumOk', d)) return;                                // the page already shows why, with no button
+          if (!at) return abad('Enter your full alumni email, like you@' + ad.d + '.');
+          if (!F('validEmail', at)) return abad('Enter your full alumni email, like you@' + ad.d + '.');
+          var ao = X('alumDomOf')(at);
+          if (!ao) return abad(F('domainOk', at, d.inst) ? 'That\'s a student address. Use the alumni email ending in @' + ad.d + '.' : '@' + at.split('@')[1] + ' isn\'t an alumni email we recognise. Use the one ending in @' + ad.d + '.');
+          if (ao.inst !== d.inst) return abad('That\'s an ' + IB[ao.inst].s + ' alumni email, but your profile says ' + IB[d.inst].s + '. Go back and change your institute, or use your @' + ad.d + ' address.');
+          btn.disabled = true;
+          try { await rpc('request_alumni_code', { p_email: at }); } catch (e) { btn.disabled = false; return abad(why(e)); }
+          J.aemail = at; J.otp = { email: at, code: '', at: Date.now() }; F('renderJoin'); toast('Code sent to ' + at + '.', { t: 'Check your inbox', k: 'info', i: 'mail' });
+          return;
+        }
+        var acode = $$('[data-otp]').map(function (i) { return i.value; }).join('');
+        if (acode.length !== 6) return joinErr('Enter all 6 digits.');
+        btn.disabled = true;
+        try {
+          var agood = await rpc('confirm_email_code', { p_code: acode });
+          if (!agood) { btn.disabled = false; $$('[data-otp]').forEach(function (i) { i.value = ''; }); var a0 = $('[data-otp="0"]'); if (a0) a0.focus(); return joinErr('That code is not right. Check the email and try again.'); }
+        } catch (e) { btn.disabled = false; return joinErr(why(e)); }
+        await becomeMember('Alumni email confirmed. You\'re listed.', 'alumni'); return;
+      }
       if (J.method === 'email') {
         if (!J.otp) {
           var inp = $('#j-iemail'), dom = IB[d.inst].d, typed = (inp.value || '').trim().toLowerCase();
           inp.removeAttribute('aria-invalid');
+          if (typed && F('validEmail', typed) && X('alumDomOf')(typed)) { joinErr('That\'s an alumni email. Students verify with their current institute email.'); inp.setAttribute('aria-invalid', 'true'); inp.focus(); return; }
           if (!typed || !F('validEmail', typed) || !F('domainOk', typed, d.inst)) { joinErr('Use your ' + dom + ' address.'); inp.setAttribute('aria-invalid', 'true'); inp.focus(); return; }
           btn.disabled = true;
           try { await rpc('request_email_code', { p_email: typed }); } catch (e) { btn.disabled = false; joinErr(e.message === 'email_domain_mismatch' ? 'Use your ' + dom + ' address.' : why(e)); return; }
@@ -567,34 +601,15 @@
     var KINDKEY = 'bridges-kind';
     function kindGet() { try { var o = JSON.parse(localStorage.getItem(KINDKEY) || 'null'); if (o && Date.now() - o.at < 3 * 3600 * 1000 && (o.k === 'student' || o.k === 'alum')) return o.k; localStorage.removeItem(KINDKEY); } catch (e) { /* storage blocked */ } return null; }
     function kindSet(k) { try { localStorage.setItem(KINDKEY, JSON.stringify({ k: k, at: Date.now() })); } catch (e) { /* storage blocked */ } }
-    var kindCss = document.createElement('style');
-    kindCss.textContent = '.kcards{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-m);max-width:760px}'
-      + '.kcard{display:grid;gap:var(--sp-s);align-content:start;padding:var(--sp-l);background:var(--surface);border:1px solid var(--line);border-radius:12px;color:var(--ink);text-decoration:none;transition:border-color .2s,transform .2s}'
-      + '.kcard:hover{border-color:var(--line-strong);transform:translateY(-1px)}.kcard:focus-visible{outline:2px solid var(--ring);outline-offset:2px}'
-      + '.kcard .kic{display:grid;place-items:center;width:40px;height:40px;border-radius:10px;background:var(--fill);color:var(--ink)}'
-      + '.kcard h3{font-size:1.0625rem}.kcard p{color:var(--ink-2);font-size:.9375rem;line-height:1.5}'
-      + '.kcard .kv{display:flex;align-items:center;gap:8px;padding-top:var(--sp-s);border-top:1px solid var(--line);color:var(--muted);font-size:.8125rem}'
-      + '.kcard .kgo{display:inline-flex;align-items:center;gap:6px;font-weight:600;font-size:.9375rem}'
-      + '.kref{display:flex;align-items:center;gap:var(--sp-s);max-width:760px;padding:var(--sp-s) var(--sp-m);background:var(--fill);border:1px solid var(--line);border-radius:12px;color:var(--ink-2);text-decoration:none;font-size:.9375rem}'
-      + '.kref:hover{border-color:var(--line-strong)}.kref b{color:var(--ink)}.kref .kr-go{margin-left:auto;display:inline-flex}'
-      + '.ksw{color:var(--ink-2);font-size:.9375rem}.ksw a{color:var(--ink);font-weight:600;text-underline-offset:3px}'
-      + '@media (max-width:640px){.kcards{grid-template-columns:1fr}}';
-    document.head.appendChild(kindCss);
+    /* the headings and the two cards come from the artifact itself (joinHead / kindPickHtml), so they follow Atharva's design and wording */
     function kindHead(k) {
       var v = $('#v-join'), hd = $('.head', v); if (!hd) return;
-      var stu = k === 'student';
-      hd.innerHTML = '<span class="eyebrow">Sign up · ' + (stu ? 'Student' : 'Alum') + '</span><h2 class="h2">Sign up as ' + (stu ? 'a student' : 'an alum') + '</h2>'
-        + '<p class="lede">' + (stu ? 'For people studying at a listed institute right now. You\'ll verify with your institute email.' : 'For people who graduated from a listed institute. You\'ll verify with your degree certificate, or a referral code from an alum.') + '</p>'
-        + '<p class="ksw">' + (stu ? 'Graduated already? <a href="#join/alum">Sign up as an alum</a>' : 'Still studying? <a href="#join/student">Sign up as a student</a> · Got a referral code? <a href="#join/referral">Use it here</a>') + '</p>';
+      var J = S.join, was = [J.kind, J.mode]; J.kind = k; J.mode = '';
+      try { hd.outerHTML = F('joinHead'); } finally { J.kind = was[0]; J.mode = was[1]; }
     }
     function kindChooser() {
-      $('#v-join').innerHTML = '<div class="head"><span class="eyebrow">Sign up</span><h2 class="h2">Join Bridges.directory</h2><p class="lede">Are you studying now, or have you graduated? It decides how we verify you, so pick the one that fits.</p></div>'
-        + '<div class="wrap" style="display:grid;gap:var(--sp-l)"><div class="kcards">'
-        + '<a class="kcard" href="#join/student"><span class="kic">' + F('ico', 'book', 20) + '</span><div><h3>I\'m a current student</h3><p>I study at an NID, NIFT, IIT or another listed institute right now.</p></div><span class="kv">' + F('ico', 'check', 14) + ' Verify with your institute email</span><span class="kgo">Sign up as a student ' + F('ico', 'right', 14) + '</span></a>'
-        + '<a class="kcard" href="#join/alum"><span class="kic">' + F('ico', 'campus', 20) + '</span><div><h3>I\'m an alum</h3><p>I graduated from a listed institute, in any year.</p></div><span class="kv">' + F('ico', 'check', 14) + ' Verify with a certificate or a referral code</span><span class="kgo">Sign up as an alum ' + F('ico', 'right', 14) + '</span></a></div>'
-        + '<a class="kref" href="#join/referral">' + F('ico', 'key', 16) + '<span><b>Got a referral code?</b> An alum emailed you a code. Sign up with it and you\'re verified straight away.</span><span class="kr-go">' + F('ico', 'right', 14) + '</span></a>'
-        + '<p class="alt-sw" style="text-align:left">Already have an account? <a href="#login">Log in</a></p>'
-        + '<p class="legal-l gstart-f">' + F('ico', 'key', 14) + '<span>Faculty accounts are set up by the Bridges team. <a href="#login" data-tofac>Faculty sign-in</a></span></p></div>';
+      var J = S.join, was = [J.kind, J.mode]; J.kind = ''; J.mode = '';
+      try { $('#v-join').innerHTML = F('joinHead') + '<div class="wrap" style="display:grid;gap:var(--sp-l)">' + F('kindPickHtml') + '</div>'; } finally { J.kind = was[0]; J.mode = was[1]; }
     }
     /* runs after the prototype drew the join page; true = this function drew everything */
     function kindPost() {
@@ -886,7 +901,7 @@
     async function saveProfile() {
       var u = S.user; if (!u || S.pEdit) return;       // the prototype keeps the form open when something is invalid
       try {
-        ok(await sb.from('profiles').update({ avatar: typeof u.av === 'object' ? u.av : {}, experiences: u.kind === 'alum' ? (u.exp || []) : [], helps: u.open }).eq('id', u.id));
+        ok(await sb.from('profiles').update({ avatar: typeof u.av === 'object' ? u.av : {}, experiences: u.kind === 'alum' ? (u.exp || []) : [], helps: u.open, fields: u.kind === 'student' ? (u.fields || []).slice(0, 3) : [] }).eq('id', u.id));
         var pp = { links: u.links || [] }; if (u.kind === 'alum') pp.email_personal = u.cemail || u.googleEmail || u.email;
         ok(await sb.from('profile_private').update(pp).eq('id', u.id));
       } catch (e) {
@@ -1013,7 +1028,15 @@
     /* ---------- render wrappers (draw first, then tidy) ---------- */
     function wrap(name, after) { var orig = X(name); setFn(name, function () { var r = orig.apply(null, arguments); try { after(); } catch (e) { console.error('[bridges]', name, e); } return r; }); }
     wrap('renderLogin', function () { var d = $('#v-login [data-demo], #v-login [data-demofac]'); if (d) { var blk = d.closest('.form'); if (blk) blk.remove(); } });
-    wrap('renderJoin', postJoin);
+    (function () {
+      var origRJ = X('renderJoin');
+      setFn('renderJoin', function () {
+        S.join.mode = ''; S.join.ref = null;      // our referral screens (below) handle codes with the real database
+        var r = origRJ.apply(null, arguments);
+        try { postJoin(); } catch (e) { console.error('[bridges] renderJoin', e); }
+        return r;
+      });
+    })();
     wrap('renderVolunteer', function () {
       var sim = $('#v-volunteer [data-vsim]');
       if (sim) { var a = sim.closest('.actions'); a.innerHTML = '<button class="btn secondary" type="button" data-vcheck>Check status</button>'; }
@@ -1055,7 +1078,7 @@
     on('click', '[data-otpedit]', guard(function () { S.join.otp = null; F('renderJoin'); }));
     on('click', '[data-otprs]', guard(async function () {
       var J = S.join; if (!J.otp) return;
-      try { await rpc('request_email_code', { p_email: J.otp.email }); } catch (e) { return toast(why(e), { k: 'warn' }); }
+      try { await rpc(J.method === 'alumni' ? 'request_alumni_code' : 'request_email_code', { p_email: J.otp.email }); } catch (e) { return toast(why(e), { k: 'warn' }); }
       J.otp.at = Date.now(); F('renderJoin'); toast('Code sent to ' + J.otp.email + '.', { t: 'Check your inbox', k: 'info', i: 'mail' });
     }));
     on('click', '[data-jgo]', guard(function (e, t) { return verifyStep(t); }));
@@ -1080,6 +1103,34 @@
     on('click', '[data-act="logout"]', function () { signOutNow().then(function () { people.length = 0; queue.length = 0; BR.contacts = {}; }); });
     on('submit', '#pf', function () { setTimeout(saveProfile, 0); });
 
+    /* ---------- email domains and institutes the admin manages (Settings) ---------- */
+    BR.xdoms = [];
+    function registerInst(r) {
+      var G = X('GROUPS'), GB = X('GB'), GS = X('GSING'), INST = X('INST'), g = r.grp;
+      if (!GB[g]) { var o = { k: g, label: 'Other institutes' }; G.push(o); GB[g] = o; GS[g] = 'Other'; }
+      var i = { id: r.id, s: r.short, n: r.name, g: g, d: r.email_domain || '', br: (r.branches && r.branches.length) ? r.branches : ['Design'] };
+      if (r.campuses && r.campuses.length) i.cp = r.campuses;
+      INST.push(i); IB[r.id] = i;
+    }
+    async function loadDomains() {
+      try {
+        ok(await sb.from('institutes').select('id,short,name,grp,email_domain,campuses,branches')).forEach(function (r) { if (!IB[r.id]) registerInst(r); });
+        var xd = await rpc('extra_domains'), A = X('ALUM_DOMS');
+        BR.xdoms = (xd && xd.student) || [];
+        A.length = 0; ((xd && xd.alumni) || []).forEach(function (a) { A.push({ inst: a.inst, d: a.d, from: a.from || 0 }); });
+      } catch (e) { console.warn('[bridges] could not load the domain lists, using the built-in ones', e); }
+    }
+    /* a student address is the institute's own domain or one the admin added; an alumni address is never a student address */
+    (function () {
+      var orig = X('domainOk');
+      setFn('domainOk', function (email, instId) {
+        var m = /^[^\s@]+@([^\s@]+)$/.exec(String(email || '').trim().toLowerCase()); if (!m) return false;
+        var dm = m[1]; if (X('alumDomOf')(email)) return false;
+        if (orig(email, instId)) return true;
+        return BR.xdoms.some(function (x) { return x.inst === instId && (dm === x.d || dm.endsWith('.' + x.d)); });
+      });
+    })();
+
     /* ---------- boot ---------- */
     sb.auth.onAuthStateChange(function (ev, session) {
       if (ev === 'SIGNED_OUT' && BR.uid) { setTimeout(function () { clearMember(); if (BR.booted) { F('renderNav'); F('route'); } }, 0); }
@@ -1087,7 +1138,7 @@
     });
     var start = function () { if (BR.booted) return; BR.booted = true; if (window.__BRBOOT) window.__BRBOOT(); };
     var fresh = false; try { fresh = sessionStorage.getItem('bridges-oauth') === '1'; sessionStorage.removeItem('bridges-oauth'); } catch (e) {}
-    settle().then(function (out) { BR.booted = true; if (fresh && BR.uid) sb.rpc('log_signin', { p_faculty: false }).then(function () {}, function () {}); goNext(out, fresh && out === 'member'); if (window.__BRBOOT) window.__BRBOOT(); })
+    loadDomains().then(function () { return settle(); }).then(function (out) { BR.booted = true; if (BR.uid) { if (fresh) sb.rpc('log_signin', { p_faculty: false }).then(function () {}, function () {}); else sb.rpc('touch_last_seen').then(function () {}, function () {}); } goNext(out, fresh && out === 'member'); if (window.__BRBOOT) window.__BRBOOT(); })
       .catch(function (e) { console.error('[bridges] start-up failed', e); start(); toast('Could not reach the server. Please reload in a moment.', { t: 'Offline?', k: 'warn' }); });
     /* gentle polling: join status while waiting, the volunteer queue while volunteering */
     setInterval(function () {

@@ -28,6 +28,8 @@ const uid = () => crypto.randomUUID();
   const one = async (sql, p) => (await q(sql, p)).rows[0];
 
   await q('begin');
+    // the live settings can have been changed by the client: start every check from the documented defaults (rolled back at the end)
+    await q(`update public.settings set value = 'week' where key = 'contact_period'`); await q(`update public.settings set value = '5' where key = 'weekly_contacts'`); await q(`update public.settings set value = '' where key like 'contact_limit_%'`);
   try {
     const mk = async (email) => { await root(); const id = uid(); emails[id] = email; await q(`insert into auth.users (id, email, aud, role) values ($1,$2,'authenticated','authenticated')`, [id, email]); return id; };
     const addProfile = async (id, kind, name, extra = {}) => {
