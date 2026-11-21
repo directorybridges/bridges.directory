@@ -150,7 +150,7 @@ button.tr:hover,summary.tr:hover{background:var(--canvas)}
 button.tr:focus-visible,summary.tr:focus-visible{outline:2px solid var(--ink);outline-offset:-2px}
 .tr .chev{color:var(--muted);justify-self:end}
 .tr > *{min-width:0}
-.mo{display:none}
+.mo,.who small.mo{display:none}
 .who{display:flex;align-items:center;gap:10px;min-width:0}
 .who > span:last-child{min-width:0}
 .who b{display:block;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -325,7 +325,7 @@ details.lg[open] > summary{background:var(--canvas)}
   .tools{padding:12px;gap:8px}.tools .cnt{margin-left:0;width:100%}.srch{max-width:none;flex-basis:100%}.tools select.input{flex:1 1 140px}.tools .seg{flex:1 1 100%}.tools .seg button{flex:1;justify-content:center}
   .tr,button.tr{grid-template-columns:var(--cols-m, minmax(0,1fr) auto);padding:12px;gap:10px}
   .tr .hm{display:none}.tr.th{display:none}
-  .mo{display:block}.who small.ro{display:none}
+  .mo,.who small.mo{display:block}.who small.ro{display:none}
   .lg-d{grid-template-columns:repeat(2,minmax(0,1fr));padding:10px 12px 12px;gap:10px}
   .grid2,.kv{grid-template-columns:1fr}
   .qgrid{grid-template-columns:minmax(0,1fr);gap:12px}.qc{padding:12px;gap:12px}
@@ -339,6 +339,11 @@ details.lg[open] > summary{background:var(--canvas)}
   .mx th:first-child,.mx td:first-child{padding-left:12px}.mx th,.mx td{padding:10px 8px}
   .side{padding:12px}
   .gate{padding:12px}.gate-c{padding:20px 16px}
+}
+/* touch screens: bigger tap areas for the small text buttons and the role checkboxes */
+@media (pointer:coarse){
+  .lnkb{position:relative}.lnkb::after{content:'';position:absolute;inset:-12px -8px}
+  .mx input{width:22px;height:22px}.mx th,.mx td{padding-top:14px;padding-bottom:14px}
 }
 @media (prefers-reduced-motion: reduce){ *{transition:none!important;animation:none!important} }
 </style>
@@ -1233,7 +1238,7 @@ function vSettings(){
 render();
 })();
 </script>
-<a href="index.html" data-backlink style="position:fixed;left:12px;bottom:12px;z-index:99999;font:600 12px/1 system-ui,sans-serif;padding:8px 12px;border-radius:999px;background:#111;color:#fff;text-decoration:none;opacity:.85">&larr; Back to site</a><script src="bridges-config.js" data-wire="backend"></script>
+<script src="bridges-config.js" data-wire="backend"></script>
 <script src="vendor/supabase.js" data-wire="backend"></script>
 <script src="admin-backend.js" data-wire="backend"></script>
 <script src="admin-data.js" data-wire="backend"></script>

@@ -14,6 +14,13 @@ function patch(file, marker, find, add, where) {
 patch('index.html', 'data-adminlink',
   '<a href="#guidelines">Community guidelines</a>',
   '<a href="admin.html" data-adminlink>Admin</a>', 'after');
-patch('admin.html', 'data-backlink',
-  '</body>',
-  '<a href="index.html" data-backlink style="position:fixed;left:12px;bottom:12px;z-index:99999;font:600 12px/1 system-ui,sans-serif;padding:8px 12px;border-radius:999px;background:#111;color:#fff;text-decoration:none;opacity:.85">&larr; Back to site</a>', 'before');
+// The admin used to get a floating "Back to site" pill. It covered the save bar, the sidebar footer and pop-up buttons
+// (on phones and on desktop), and the admin's top bar already has "Open site". So the pill is removed, and stays removed.
+(function () {
+  const p = root + '/admin.html';
+  let s = fs.readFileSync(p, 'utf8');
+  const re = /<a href="index\.html" data-backlink[^>]*>[^<]*<\/a>/g;
+  if (!re.test(s)) return console.log('admin.html: no floating back link (good)');
+  fs.writeFileSync(p, s.replace(re, ''));
+  console.log('admin.html: floating back link removed');
+})();

@@ -105,7 +105,9 @@
 
     /* ---------- quiet the prototype's "this is a demo" notes ---------- */
     var st = document.createElement('style');
-    st.textContent = '.demo{display:none!important}.dr-f{display:none!important}.ft-b span:last-child:not(:first-child){display:none}';
+    st.textContent = '.demo{display:none!important}.dr-f{display:none!important}.ft-b span:last-child:not(:first-child){display:none}'
+      /* touch screens: the small footer links, "Report" and "See my listing" get a taller tap area (nothing moves or changes size) */
+      + '@media (pointer:coarse){.ft-col a,.ft-col button,.rp,.mine-l{position:relative}.ft-col a::after,.ft-col button::after{content:"";position:absolute;inset:-5px -6px}.rp::after,.mine-l::after{content:"";position:absolute;inset:-6px -4px}}';
     document.head.appendChild(st);
 
     /* ---------- shapes: database row -> the prototype's person ---------- */
