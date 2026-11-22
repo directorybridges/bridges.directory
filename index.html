@@ -549,6 +549,9 @@ body[data-view="home"] .ft{margin-top:calc(100lvh - 100svh + 96px)}
 @media (max-width:720px){ .q{grid-template-columns:1fr!important} .q .viewer{order:0} }
 /* login */
 .narrow{max-width:420px;width:100%}
+/* Join and login: the form column sits in the middle of the page (Aman, 22 Nov). Text stays left-aligned inside it. */
+#v-login>.narrow,#v-join>.wrap,#v-join>.head{margin-inline:auto}
+#v-join>.head{max-width:760px;width:100%}
 /* Sign in with Google: Google's standard button (light and dark), built to its branding guidelines */
 .gbtn{display:inline-flex;align-items:center;justify-content:center;gap:10px;width:100%;height:44px;padding:0 16px;border:1px solid #747775;border-radius:22px;background:#FFFFFF;color:#1F1F1F;font:500 .875rem/1 Roboto,var(--sans);letter-spacing:.01em;cursor:pointer;transition:background-color .15s ease,box-shadow .15s ease}
 .gbtn:hover{background:#F8F9FA;box-shadow:0 1px 2px rgba(60,64,67,.3),0 1px 3px 1px rgba(60,64,67,.15)}
