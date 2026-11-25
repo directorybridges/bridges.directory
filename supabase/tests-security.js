@@ -1,4 +1,4 @@
-// Checks the security hardening (migration 0014): avatar shape, size caps, daily limits, against the real database
+// Checks the security hardening (migrations 0014 and 0015): avatar shape, size caps, daily limits, against the real database
 // inside ONE transaction that is rolled back, so no setting, member or log line is left behind.
 //   cd supabase && node tests-security.js ../.env
 const { Client } = require('pg');
@@ -30,6 +30,7 @@ const uid = () => crypto.randomUUID();
   try {
     // the migration is applied inside this rolled-back transaction first, so the test also works before it is live (and again after)
     await q(fs.readFileSync(path.join(__dirname, '0014_security_hardening.sql'), 'utf8'));
+    await q(fs.readFileSync(path.join(__dirname, '0015_close_email_signups_referral_limit.sql'), 'utf8'));
     const mk = async (email) => { await root(); const id = uid(); emails[id] = email; await q(`insert into auth.users (id, email, aud, role) values ($1,$2,'authenticated','authenticated')`, [id, email]); return id; };
     const addProfile = async (id, kind, name) => {
       await q(`insert into public.profiles (id, kind, name, institute_id, branch, year, verified, listed, verify_method, campus)
@@ -107,6 +108,26 @@ const uid = () => crypto.randomUUID();
     const cid = (await one(`select public.start_contribution(50000, false, $1) id`, ['n'.repeat(200)])).id;
     await root();
     ok('a long display name is cut to 80 characters instead of being stored whole', (await one(`select char_length(display_name) n from public.contributions where id = $1`, [cid])).n === 80);
+
+    // ---------------------------------------------------------------- 4. the sign-up block must not stop accounts the admin creates
+    await root();
+    const signup = (email, provider) => q(`insert into auth.users (id, email, aud, role, raw_app_meta_data) values ($1,$2,'authenticated','authenticated',$3::jsonb)`,
+      [uid(), email, JSON.stringify({ provider, providers: [provider] })]);
+    // (the refusal itself only applies to the sign-in service's own database role, which this test cannot become; it is proven with a real sign-up attempt against the live API)
+    ok('the admin can still create an email-login account (faculty path, runs as the database owner)', (await err(() => signup('faculty1@test.invalid', 'email'))) === null);
+
+    // ---------------------------------------------------------------- 5. referral check: limit per caller, high ceiling for everyone
+    await root(); await q(`delete from public.referral_checks`);
+    const withIp = async (ip, fn) => { await q(`select set_config('request.headers', $1, true)`, [JSON.stringify({ 'x-forwarded-for': ip })]); return fn(); };
+    const chk = () => q(`select public.check_referral('NOSUCH99')`);
+    for (let i = 0; i < 20; i++) { const m = await withIp('203.0.113.7', () => err(chk)); if (m) { ok('caller A check ' + (i + 1) + ' of 20 a minute is accepted', false, m); break; } if (i === 19) ok('20 checks a minute from one caller are accepted', true); }
+    await expectErr('the 21st check from the same caller is refused', () => withIp('203.0.113.7', chk), /too_many_attempts/);
+    ok('a different caller is NOT blocked by the first one', (await withIp('198.51.100.9', () => err(chk))) === null);
+    ok('the same caller behind a proxy list is still recognised (first address counts)', (await withIp('203.0.113.7, 10.0.0.1', () => err(chk))) !== null);
+    await root(); await q(`delete from public.referral_checks`);
+    await q(`insert into public.referral_checks (at, who) select now(), 'x' || g from generate_series(1,610) g`);
+    await expectErr('the ceiling for everyone together (600 a minute) still stops floods', () => withIp('192.0.2.55', chk), /too_many_attempts/);
+    await q(`delete from public.referral_checks`);
   } catch (e) {
     fail++; console.log('FIRST ERROR: ' + global.firstErr); console.log('FAIL (crashed) ' + e.message + '\n' + (e.stack || '').split('\n').slice(1, 4).join('\n'));
   } finally {

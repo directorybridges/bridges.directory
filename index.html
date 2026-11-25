@@ -2433,7 +2433,7 @@ $('#v-join').addEventListener('click', e => {
   if(e.target.closest('[data-unfile]')){ J.file = null; J.fileObj = null; renderJoin(); return; }
   if(e.target.closest('[data-jback]')){ J.step = 1; J.otp = null; renderJoin(); return; }
   if(e.target.closest('[data-otpedit]')){ J.otp = null; renderJoin(); return; }
-  if(e.target.closest('[data-otprs]')){ J.otp.code = String(100000 + Math.floor(Math.random() * 900000)); J.otp.at = Date.now(); renderJoin(); toast('New code sent to '+J.otp.email+'.', {t:'Check your inbox', k:'info', i:'mail'}); return; }
+  if(e.target.closest('[data-otprs]')){ J.otp.code = String(100000 + rnd(900000)); J.otp.at = Date.now(); renderJoin(); toast('New code sent to '+J.otp.email+'.', {t:'Check your inbox', k:'info', i:'mail'}); return; }
   if(e.target.closest('[data-jskip]')){ const q = queue.find(x => x.id === J.qid); if(q){ q.approvals = REVIEW_NAMES.slice(0, 2); q.status = 'approved'; } listMe('documents'); renderJoin(); toast('Approved. You\'re now listed.'); return; }
   if(e.target.closest('[data-jgo]')){
     const err = $('#j-err2'), d = J.d;
@@ -2450,7 +2450,7 @@ $('#v-join').addEventListener('click', e => {
         }
         const em = typed || (d.name.toLowerCase().replace(/[^a-z]+/g, '.').replace(/^\.|\.$/g, '') || 'alum')+'@'+ad.d;
         if(findByEmail(em) || people.some(p => p.aemail === em)) return bad('That alumni email is already on a profile. Log in with the Google account you joined with.');
-        J.aemail = em; J.otp = {email:em, code:String(100000 + Math.floor(Math.random() * 900000)), at:Date.now()}; renderJoin(); toast('Code sent to '+em+'.', {t:'Check your inbox', k:'info', i:'mail'}); return;
+        J.aemail = em; J.otp = {email:em, code:String(100000 + rnd(900000)), at:Date.now()}; renderJoin(); toast('Code sent to '+em+'.', {t:'Check your inbox', k:'info', i:'mail'}); return;
       }
       d.aemail = J.otp.email; J.viaInstant = true; J.otp = null; listMe('alumni'); renderJoin(); toast('Alumni email confirmed. You\'re listed.', {t:'You\'re listed'}); return;
     }
@@ -2467,7 +2467,7 @@ $('#v-join').addEventListener('click', e => {
         if(typed && (!validEmail(typed) || !domainOk(typed, d.inst))){ err.textContent = 'Use your '+dom+' address.'; inp.setAttribute('aria-invalid','true'); inp.focus(); return; }
         const em = typed || (d.name.toLowerCase().replace(/[^a-z]+/g, '.').replace(/^\.|\.$/g, '') || 'student')+'@'+dom;
         if(findByEmail(em)){ err.textContent = 'That email is already on a profile. Log in with the Google account you joined with.'; inp.setAttribute('aria-invalid','true'); return; }
-        J.iemail = em; J.otp = {email:em, code:String(100000 + Math.floor(Math.random() * 900000)), at:Date.now()}; renderJoin(); toast('Code sent to '+em+'.', {t:'Check your inbox', k:'info', i:'mail'}); return;
+        J.iemail = em; J.otp = {email:em, code:String(100000 + rnd(900000)), at:Date.now()}; renderJoin(); toast('Code sent to '+em+'.', {t:'Check your inbox', k:'info', i:'mail'}); return;
       }
       d.email = J.otp.email; d.email2 = J.g; J.viaInstant = true; J.otp = null; listMe('email'); renderJoin(); toast('Email confirmed. You\'re listed.', {t:'You\'re listed'}); return;
     }
@@ -2969,7 +2969,8 @@ function stepDown(){
 }
 
 /* ---------- refer an alum: verified alumni vouch for alumni from their own institute ---------- */
-const refCode = () => 'BR-'+Math.random().toString(36).slice(2, 6).toUpperCase();
+const rnd = n => crypto.getRandomValues(new Uint32Array(1))[0] % n;
+const refCode = () => 'BR-'+Array.from({length:4}, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[rnd(32)]).join('');
 function refStatus(r){ if(r.status === 'joined') return ['pos','Joined']; if(Date.now() - r.at > 14 * 864e5) return ['','Expired']; return ['warn','Pending']; }
 function renderRefer(){
   const u = S.user, el = $('#v-refer');

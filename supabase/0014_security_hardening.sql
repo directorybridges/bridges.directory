@@ -100,3 +100,7 @@ begin
           p_amount_paise) returning id into cid;
   return cid;
 end $function$;
+
+-- The avatar checks run inside the profiles table's CHECK constraint, as whoever writes the row (members, the sign-up call, the admin).
+-- 0001 takes every function permission away each time the migrations are re-applied, so they must be granted again here.
+grant execute on function public.avatar_num_ok(jsonb), public.avatar_ok(jsonb) to anon, authenticated;

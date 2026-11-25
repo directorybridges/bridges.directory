@@ -370,7 +370,7 @@ const uid = () => crypto.randomUUID();
     ok('landing: a wrong code says no', (await q(`select public.check_referral('NOSUCH99') r`)).rows[0].r.ok === false);
     ok('landing: a too-short or too-long code says no', (await q(`select public.check_referral('ab') r`)).rows[0].r.ok === false && (await q(`select public.check_referral('ABCDEFGHIJKLMNOPQ') r`)).rows[0].r.ok === false);
     await root();
-    await q(`insert into public.referral_checks select now() from generate_series(1,70)`);
+    await q(`insert into public.referral_checks (at, who) select now(), '-' from generate_series(1,25)`);   // 25 from one caller (the limit is 20 a minute per caller)
     await asAnon();
     await expectErr('landing: too many checks in a minute are stopped', () => q(`select public.check_referral('TESTALM1')`), /too_many_attempts/);
     await root(); await q(`delete from public.referral_checks`);
