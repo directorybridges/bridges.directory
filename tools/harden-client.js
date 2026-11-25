@@ -51,3 +51,14 @@ function secureRandom(f) {
 }
 secureRandom('index.html');
 secureRandom('admin.html');
+
+// Students who joined before the "fields" question have no field picked. The edit form refused to save ANYTHING until they picked one, with only a small
+// line of text, so their edits looked like "not saving". Now only someone who had fields and removes them all is stopped; the join form still requires one.
+(function () {
+  let s = read('index.html');
+  const oldF = "if(!fl.length){ err.textContent = 'Pick at least one field you work in.'; return; } u.fields = fl;";
+  const newF = "if(!fl.length && (u.fields || []).length){ err.textContent = 'Pick at least one field you work in.'; return; } u.fields = fl;";
+  if (s.includes(newF)) console.log('index.html: fields rule already relaxed for students with none');
+  else if (s.includes(oldF)) { s = s.replace(oldF, newF); write('index.html', s); console.log('index.html: students with no fields can now save other changes'); }
+  else console.log('index.html: fields rule line not found (design file changed?), NOT patched');
+})();

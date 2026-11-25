@@ -2764,7 +2764,7 @@ $('#v-profile').addEventListener('submit', e => {
   u.links = readLinks($('#p-links'));
   const open = $$('#pf .checks:not(.fld) input:checked').map(i => +i.value);
   if(!open.length){ err.textContent = 'Pick at least one thing you can help with.'; return; }
-  if(u.kind === 'student'){ const fl = $$('#pf .checks.fld input:checked').map(i => +i.value); if(!fl.length){ err.textContent = 'Pick at least one field you work in.'; return; } u.fields = fl; }
+  if(u.kind === 'student'){ const fl = $$('#pf .checks.fld input:checked').map(i => +i.value); if(!fl.length && (u.fields || []).length){ err.textContent = 'Pick at least one field you work in.'; return; } u.fields = fl; }
   u.open = open; if(S.pAv) u.av = S.pAv; S.pAv = null; S.pEdit = false; saveSession(); renderNav(); renderProfile(); window.scrollTo(0, 0); toast('Profile saved.');
 });
 
