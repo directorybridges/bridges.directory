@@ -32,7 +32,7 @@ const get = (id, tok) => fetch(W + '/f/' + id, { headers: Object.assign({ Origin
   const dev = path.join(__dirname, '.dev.vars');
   try {
     const secret = (await c.query(`select decrypted_secret s from vault.decrypted_secrets where name='cert_worker_secret'`)).rows[0].s;
-    fs.writeFileSync(dev, 'WORKER_SECRET=' + secret + '\n');
+    fs.writeFileSync(dev, 'WORKER_SECRET=' + secret + '\nALLOWED_ORIGINS=https://bridges.directory,' + ORIGIN + '\n');   // the local test origin exists only in this throwaway file, never in the deployed settings
     const mk = async (tag, o) => {
       const id = crypto.randomUUID(), email = `zz-r2${tag}@test.invalid`;
       await c.query(`insert into auth.users (id,email,aud,role,encrypted_password,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,created_at,updated_at,instance_id,

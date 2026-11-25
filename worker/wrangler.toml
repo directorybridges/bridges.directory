@@ -15,7 +15,7 @@ bucket_name = "bridges-certificates"
 SUPABASE_URL = "https://fpvqhqjdlqwfjsgblwzq.supabase.co"
 # the public publishable key (the same one the website uses); the database decides what it may do
 SUPABASE_KEY = "sb_publishable_44DFmgOXzrHCUV9xDkh8Ug_zxFIj2FM"
-ALLOWED_ORIGINS = "https://bridges.directory,https://www.bridges.directory,http://localhost:8093"
+ALLOWED_ORIGINS = "https://bridges.directory,https://www.bridges.directory"
 
 [triggers]
 crons = ["30 */6 * * *"]
