@@ -72,6 +72,6 @@ secureRandom('admin.html');
   const oldB = "const blank = exp.findIndex(x => !x.role);";
   const newB = "const blank = $$('#pf .xp').findIndex(r => !$('[data-k=\"role\"]', r).value.trim() && $('[data-k=\"org\"]', r).value.trim());";
   if (s.includes(newA) && s.includes(newB)) console.log('index.html: empty experience row already ignored on save');
-  else if (s.includes(oldA) && s.includes(oldB)) { s = s.replace(oldA, newA).replace(oldB, newB); write('index.html', s); console.log('index.html: an empty experience row no longer blocks saving'); }
+  else if (s.includes(oldA) && s.includes(oldB)) { s = s.replace(oldA, () => newA).replace(oldB, () => newB); write('index.html', s); console.log('index.html: an empty experience row no longer blocks saving'); }
   else console.log('index.html: experience rule lines not found (design file changed?), NOT patched');
 })();
