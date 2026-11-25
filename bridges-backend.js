@@ -1188,7 +1188,15 @@
     on('submit', '#gf', guard(contribute));
     on('click', '[data-delyes]', guard(function (e, t) { return deleteAccount(t); }));
     on('click', '[data-act="logout"]', function () { signOutNow().then(function () { people.length = 0; queue.length = 0; BR.contacts = {}; }); });
-    on('submit', '#pf', function () { setTimeout(saveProfile, 0); });
+    /* when the form refuses to save (a missing field, a bad link...), say so loudly and take the person to the problem.
+       Students who joined before the "fields" question have none picked, so their first edit hits "Pick at least one field" and, with only a small line of text, looks like "not saving" */
+    function profileBlocked() {
+      var e = $('#p-err'); if (!e || !S.pEdit || !e.textContent.trim()) return;
+      toast(e.textContent.trim(), { t: 'Not saved yet', k: 'warn' });
+      var tgt = /field/i.test(e.textContent) ? ($('#pf .checks.fld') || e) : (document.querySelector('#pf [aria-invalid="true"]') || e);
+      try { tgt.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (x) {}
+    }
+    on('submit', '#pf', function () { setTimeout(function () { saveProfile(); profileBlocked(); }, 0); });
 
     /* ---------- email domains and institutes the admin manages (Settings) ---------- */
     BR.xdoms = [];
