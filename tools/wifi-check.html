@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Bridges wifi check</title>
+<style>
+  :root{--bg:#fff;--fg:#16150F;--mut:#6b6a64;--ok:#1a7f45;--bad:#b3261e;--warn:#9a6700;--line:#e4e2da}
+  @media (prefers-color-scheme:dark){:root{--bg:#141412;--fg:#f3f2ee;--mut:#9c9a92;--ok:#4cc27f;--line:#2c2b27}}
+  body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,sans-serif}
+  main{max-width:760px;margin:0 auto;padding:24px 16px 64px}
+  h1{font-size:22px;margin:0 0 4px}p.sub{color:var(--mut);margin:0 0 20px}
+  button{font:inherit;padding:10px 18px;border-radius:9px;border:1px solid var(--fg);background:var(--fg);color:var(--bg);cursor:pointer}
+  button.ghost{background:transparent;color:var(--fg)}
+  table{width:100%;border-collapse:collapse;margin:20px 0}
+  td,th{text-align:left;padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:top;font-size:15px}
+  th{color:var(--mut);font-weight:500}
+  .ok{color:var(--ok);font-weight:600}.bad{color:var(--bad);font-weight:600}.warn{color:var(--warn);font-weight:600}
+  .small{color:var(--mut);font-size:13px}
+  pre{white-space:pre-wrap;background:rgba(127,127,127,.12);padding:12px;border-radius:8px;font-size:13px}
+  #verdict{padding:14px;border:1px solid var(--line);border-radius:10px;margin:16px 0;display:none}
+</style></head>
+<body><main>
+<h1>Bridges wifi check</h1>
+<p class="sub">Open this file on the college wifi (just double-click it). It tests, from your own browser, which parts of Bridges.directory the network lets through. Nothing is sent anywhere.</p>
+<button id="go">Run the check</button> <button id="copy" class="ghost" style="display:none">Copy results</button>
+<div id="verdict"></div>
+<table id="t"><thead><tr><th>Test</th><th>Result</th><th>What it means</th></tr></thead><tbody></tbody></table>
+<p class="small">The first three rows are controls (sites that normally work). If they fail, your internet itself is down and the other results mean nothing.</p>
+<script>
+const rows = [];
+const tb = document.querySelector('#t tbody');
+function add(name, status, text, meaning){ rows.push({name,status,text,meaning}); const tr=document.createElement('tr');
+  tr.innerHTML='<td>'+name+'</td><td class="'+status+'">'+text+'</td><td class="small">'+meaning+'</td>'; tb.appendChild(tr); }
+const T = 8000;
+async function f(url, opt){ const c=new AbortController(); const id=setTimeout(()=>c.abort(),T); const t0=performance.now();
+  try{ const r=await fetch(url,Object.assign({signal:c.signal,cache:'no-store'},opt)); return {ok:true,r,ms:Math.round(performance.now()-t0)}; }
+  catch(e){ return {ok:false,e,ms:Math.round(performance.now()-t0),aborted:e&&e.name==='AbortError'}; } finally{ clearTimeout(id); } }
+// reachable at all? (opaque response means the connection worked; an error means blocked, intercepted with an untrusted certificate, or no DNS)
+async function reach(name, url, meaningOk, meaningBad){ const x=await f(url,{mode:'no-cors'});
+  if(x.ok) add(name,'ok','reachable ('+x.ms+' ms)',meaningOk); else add(name,'bad',x.aborted?'timed out':'blocked',meaningBad); return x.ok; }
+// real content check: our file is served with open CORS, so we can read it and tell the real site from a filter's block page
+async function content(name, url, needle, meaningOk, meaningBlockPage, meaningBad, hdr){ const x=await f(url,hdr?{mode:'cors',headers:hdr}:{mode:'cors',redirect:'manual'});
+  if(!x.ok){ add(name,'bad',x.aborted?'timed out':'blocked',meaningBad); return 'fail'; }
+  if(x.r.type==='opaqueredirect'){ add(name,'ok','answers, sends you on to the real site ('+x.ms+' ms)',meaningOk); return 'ok'; }
+  const t=await x.r.text().catch(()=> '');
+  if(t.indexOf(needle)>=0){ add(name,'ok','real site answered ('+x.ms+' ms)',meaningOk); return 'ok'; }
+  add(name,'warn','something else answered',meaningBlockPage+' First words: “'+t.replace(/\s+/g,' ').slice(0,90)+'”'); return 'page'; }
+
+document.getElementById('go').onclick = async () => {
+  tb.innerHTML=''; rows.length=0; document.getElementById('verdict').style.display='none';
+  const c1=await reach('Control: Wikipedia','https://www.wikipedia.org/favicon.ico','Normal internet works.','Your internet looks down. Retry before trusting anything below.');
+  const c2=await reach('Control: Reddit','https://www.reddit.com/favicon.ico','Allowed on this network.','Reddit blocked here.');
+  const c3=await reach('Control: GitHub','https://github.com/favicon.ico','Allowed. (Our site is hosted by GitHub Pages.)','GitHub blocked here, which would also block our hosting.');
+  const s=await content('Bridges site over HTTPS','https://bridges.directory/site.webmanifest','Bridges','The network lets the site through.','The network answers for bridges.directory, but with its own page (a block or login page), not our site.','HTTPS to bridges.directory fails. This matches the “connection not private” screen: the filter intercepts it and its certificate is not trusted, or it cuts the connection.');
+  const h=(await reach('Bridges site over plain HTTP','http://bridges.directory/site.webmanifest','Plain HTTP connects (the site then sends you to HTTPS).','Plain HTTP also fails. Likely a DNS block or the whole domain being cut.'))?'ok':'fail';
+  const w=(await reach('www.bridges.directory','https://www.bridges.directory/site.webmanifest','The www address connects (it sends you on to the main address).','The www address is also blocked.'))?'ok':'fail';
+  const d=await content('Database (Supabase)','https://fpvqhqjdlqwfjsgblwzq.supabase.co/auth/v1/settings','"external"','The database host works. Login and profiles will load.','The database host answers with a filter page instead of data.','The database host is blocked. The page may open but login and the directory will not load. The college must allow *.supabase.co.',{apikey:'sb_publishable_44DFmgOXzrHCUV9xDkh8Ug_zxFIj2FM'});
+  const g=await reach('Google sign-in (accounts.google.com)','https://accounts.google.com/gsi/client','Google sign-in can load.','Google sign-in is blocked. Login with Google will fail. The college must allow accounts.google.com.');
+  const dns=await reach('Control: Instagram','https://www.instagram.com/favicon.ico','Allowed on this network (matches what you saw).','Instagram blocked here.');
+  const controls=c1&&c2&&c3;
+  const v=document.getElementById('verdict'); v.style.display='block';
+  let msg;
+  if(!c1) msg='Your internet itself looks down. Run again once it is back.';
+  else if(s==='ok'&&d!=='fail'&&g) msg='<b class="ok">The site is reachable from this network.</b> If it still looks blocked, try a private window, or restart the browser.';
+  else if(s==='fail'&&h==='ok') msg='<b class="bad">HTTPS to bridges.directory is being intercepted or cut, but plain HTTP gets through.</b> That is a certificate-inspection filter. Fix: the college IT allows bridges.directory, or the vendor re-categorises it.';
+  else if(s==='page') msg='<b class="bad">The network answers for our address with its own page.</b> That page normally names the category (for example “Uncategorised” or “Newly registered”). Screenshot it and send it to the college IT.';
+  else if(s==='fail'&&h==='fail') msg='<b class="bad">Our domain is fully blocked here, both HTTPS and HTTP.</b> Likely a DNS block. Fix: the college IT allows bridges.directory. Backup: a phone hotspot.';
+  else msg='<b class="warn">Mixed result.</b> Our site gets through, but another part is blocked: see the red rows. The college must allow those addresses.';
+  v.innerHTML=msg;
+  document.getElementById('copy').style.display='inline-block';
+};
+document.getElementById('copy').onclick=()=>{ const txt=rows.map(r=>r.name+': '+r.text).join('\n')+'\n'+navigator.userAgent; navigator.clipboard.writeText(txt).then(()=>{document.getElementById('copy').textContent='Copied'}); };
+</script></main></body></html>
