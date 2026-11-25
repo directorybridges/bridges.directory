@@ -25,5 +25,5 @@ function wireTheme(file) {
   console.log(file + ': theme wired');
 }
 wireTheme('admin.html');
-wire('index.html', ['bridges-config.js', 'vendor/supabase.js', 'redact.js', 'bridges-backend.js', 'admin-data.js', 'content-apply.js', 'hero-globe.js']);
+wire('index.html', ['bridges-config.js', 'vendor/supabase.js', 'redact.js', 'bridges-backend.js', 'admin-data.js', 'content-apply.js', 'hero-globe.js', 'seo.js']);
 wire('admin.html', ['bridges-config.js', 'vendor/supabase.js', 'admin-data.js', 'admin-backend.js', 'admin-people.js', 'admin-moderation.js', 'admin-site.js']);

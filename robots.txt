@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /supabase/
+Disallow: /worker/
+Disallow: /tools/
+
+Sitemap: https://bridges.directory/sitemap.xml

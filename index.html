@@ -3,8 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Bridges.directory</title>
-<meta name="description" content="Verified alumni and current students from India's design schools. Find someone from your branch and ask them about entrances, portfolios, campus life or work.">
+<link rel="preconnect" href="https://fpvqhqjdlqwfjsgblwzq.supabase.co" crossorigin>
+<link rel="canonical" href="https://bridges.directory/">
+<meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1">
+<meta property="og:locale" content="en_IN">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"WebSite","@id":"https://bridges.directory/#website","url":"https://bridges.directory/","name":"Bridges.directory","description":"A free, verified directory of students and alumni from India's design schools: the NIFTs, the NIDs and the IITs. Find someone from your branch and ask about entrances, portfolios, campus life or work.","inLanguage":"en","publisher":{"@id":"https://bridges.directory/#org"}},{"@type":"Organization","@id":"https://bridges.directory/#org","name":"Bridges.directory","url":"https://bridges.directory/","logo":{"@type":"ImageObject","url":"https://bridges.directory/brand/logo-512.png","width":512,"height":512},"description":"A free, verified directory of students and alumni from India's design schools: the NIFTs, the NIDs and the IITs. Find someone from your branch and ask about entrances, portfolios, campus life or work."}]}</script>
+<title>Bridges.directory | Talk to someone who's already there</title>
+<meta name="description" content="A free, verified directory of students and alumni from India's design schools: the NIFTs, the NIDs and the IITs. Find someone from your branch and ask about entrances, portfolios, campus life or work.">
 <link rel="icon" href="/favicon.ico" sizes="48x48">
 <link rel="icon" type="image/png" sizes="32x32" href="/brand/favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="/brand/favicon-16.png">
@@ -25,9 +30,9 @@
 <meta name="twitter:title" content="Bridges.directory">
 <meta name="twitter:description" content="Talk to someone who's already there. Verified alumni and students from India's design schools.">
 <meta name="twitter:image" content="https://bridges.directory/brand/og-image.jpg">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Roboto:wght@500&display=swap" rel="stylesheet">
+<link rel="preload" href="/fonts/geist-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/fonts/fonts.css">
+<style data-seo-slides>#v-home .stage .slide{display:none!important}</style>
 <style>
 /* Palette carried over from the previous version. Spacing follows the Forma 36 scale (4 8 12 16 24 32 48 64 80).
    Buttons are flat and solid; every button gets a smoothed (squircle) corner from the clip-path generator in the script. */
@@ -1104,9 +1109,9 @@ body[data-view="home"] .ft{margin-top:calc(100lvh - 100svh + 96px)}
 <!-- HOME -->
 <main class="home" id="v-home" data-view="home">
   <div class="stage" id="stage">
-    <img class="slide" src="campus-3.webp" data-name="NIFT Hyderabad" data-place="Hyderabad" alt="Dithered view of the NIFT Hyderabad courtyard, with wide steps, a large tree and coloured pergolas">
-    <img class="slide" src="campus-1.webp" data-name="Campus name" data-place="City" alt="Dithered illustration of a long, low campus building behind a wide lawn">
-    <img class="slide" src="campus-2.webp" data-name="Campus name" data-place="City" alt="Dithered aerial view of a hillside campus with a circular plaza">
+    <img class="slide" loading="lazy" decoding="async" data-src="campus-3.webp" data-name="NIFT Hyderabad" data-place="Hyderabad" alt="Dithered view of the NIFT Hyderabad courtyard, with wide steps, a large tree and coloured pergolas">
+    <img class="slide" loading="lazy" decoding="async" data-src="campus-1.webp" data-name="Campus name" data-place="City" alt="Dithered illustration of a long, low campus building behind a wide lawn">
+    <img class="slide" loading="lazy" decoding="async" data-src="campus-2.webp" data-name="Campus name" data-place="City" alt="Dithered aerial view of a hillside campus with a circular plaza">
     <canvas id="fx" aria-hidden="true" hidden></canvas>
     <canvas id="grain" aria-hidden="true"></canvas>
     <div class="cap out" id="cap" aria-live="polite"></div>
@@ -3315,5 +3320,6 @@ animatePage();
 <script src="admin-data.js" data-wire="backend"></script>
 <script src="content-apply.js" data-wire="backend"></script>
 <script src="hero-globe.js" data-wire="backend"></script>
+<script src="seo.js" data-wire="backend"></script>
 </body>
 </html>
