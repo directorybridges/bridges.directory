@@ -23,10 +23,11 @@ Replace `index.html` / `admin.html` (and any new images), then run, from the rep
 ```
 node tools/wire-backend.js .
 node tools/link-admin.js .
+node tools/seo-speed.js .
 node tools/extract-admin-data.js .
 node tools/strip-demo.js .
 ```
-(`wire-backend.js` also puts the globe script back.)
+(`wire-backend.js` also puts the globe script and `seo.js` back. `seo-speed.js` puts back the page title, canonical link, structured data, local fonts, admin noindex and the database preconnect. `seo.js` changes the tab title per page.)
 Each can be run again safely. They re-attach the backend, the Admin link, the admin text defaults, and drop the prototype's demo passwords.
 
 ## Accounts that should all sit in the owner's name
