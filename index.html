@@ -2753,9 +2753,9 @@ $('#v-profile').addEventListener('submit', e => {
   e.preventDefault(); const u = S.user, err = $('#p-err'); if(!u) return;
   $$('#pf .input').forEach(i => i.removeAttribute('aria-invalid'));
   if(u.kind !== 'student'){
-    const em = $('#p-email').value.trim(), exp = xpRead($('#pf'));
+    const em = $('#p-email').value.trim(), exp = xpRead($('#pf')).filter(x => x.role || x.org);
     if(!validEmail(em)){ $('#p-email').setAttribute('aria-invalid','true'); err.textContent = 'Enter a valid email.'; return; }
-    const blank = exp.findIndex(x => !x.role); if(blank >= 0){ $$('#pf .xp [data-k="role"]')[blank].setAttribute('aria-invalid','true'); err.textContent = 'Add a role for each experience, or remove the empty one.'; return; }
+    const blank = $('#pf .xp').findIndex(r => !$('[data-k="role"]', r).value.trim() && $('[data-k="org"]', r).value.trim()); if(blank >= 0){ $$('#pf .xp [data-k="role"]')[blank].setAttribute('aria-invalid','true'); err.textContent = 'Add a role for each experience, or remove the empty one.'; return; }
     const noField = $$('#pf .xp').find(r => $('[data-k="f"]', r).value === '-1' && !$('[data-k="fo"]', r).value.trim());
     if(noField){ const o = $('[data-k="fo"]', noField); o.setAttribute('aria-invalid','true'); o.focus(); err.textContent = 'Type your field, or pick one from the list.'; return; }
     u.cemail = em.toLowerCase() === u.email ? '' : em; u.exp = exp; syncPrimary(u);

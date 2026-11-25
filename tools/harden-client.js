@@ -62,3 +62,16 @@ secureRandom('admin.html');
   else if (s.includes(oldF)) { s = s.replace(oldF, newF); write('index.html', s); console.log('index.html: students with no fields can now save other changes'); }
   else console.log('index.html: fields rule line not found (design file changed?), NOT patched');
 })();
+
+// Alums with no experience saved (or an empty row left in the editor) could not save ANY change: the editor always shows one empty row, it cannot be
+// removed when it is the only one, and the form demanded a role in it. Now a completely empty row is simply ignored; a row with a company but no role is still stopped.
+(function () {
+  let s = read('index.html');
+  const oldA = "exp = xpRead($('#pf'));";
+  const newA = "exp = xpRead($('#pf')).filter(x => x.role || x.org);";
+  const oldB = "const blank = exp.findIndex(x => !x.role);";
+  const newB = "const blank = $$('#pf .xp').findIndex(r => !$('[data-k=\"role\"]', r).value.trim() && $('[data-k=\"org\"]', r).value.trim());";
+  if (s.includes(newA) && s.includes(newB)) console.log('index.html: empty experience row already ignored on save');
+  else if (s.includes(oldA) && s.includes(oldB)) { s = s.replace(oldA, newA).replace(oldB, newB); write('index.html', s); console.log('index.html: an empty experience row no longer blocks saving'); }
+  else console.log('index.html: experience rule lines not found (design file changed?), NOT patched');
+})();
