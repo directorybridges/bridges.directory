@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
+<script data-frame-guard>if(window.top!==window.self){document.documentElement.style.display="none";try{window.top.location.href=window.self.location.href}catch(e){}}</script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <link rel="preconnect" href="https://fpvqhqjdlqwfjsgblwzq.supabase.co" crossorigin>
@@ -1385,8 +1386,10 @@ function avNorm(a){
   if(!a || typeof a !== 'object') return avDefault('a');
   if(!a.p && (a.g === 'm' || a.g === 'f')) a = avMigrate(a);
   const s = Object.assign(avDefault(a.p), a);
-  if(!AV_HAIR[s.h]) s.h = AV_PRESET_DEF[s.p].h;
-  s.f = +s.f % 6 || 0; s.g = +s.g % 6 || 0; s.b = +s.b % 7 || 0; s.s = +s.s % 16 || 0; s.bg = +s.bg % 15 || 0;
+  if(!Object.prototype.hasOwnProperty.call(AV_PRESET_DEF, s.p)) s.p = 'a';
+  if(!Object.prototype.hasOwnProperty.call(AV_HAIR, s.h)) s.h = AV_PRESET_DEF[s.p].h;
+  const md = (v, n) => (((+v % n) + n) % n) || 0;
+  s.f = md(s.f, 6); s.g = md(s.g, 6); s.b = md(s.b, 7); s.s = md(s.s, 16); s.bg = md(s.bg, 15);
   s.j = (Array.isArray(s.j) ? s.j : []).map(Number).filter(v => v > 0 && v < 7).slice(0, 2);
   return s;
 }
