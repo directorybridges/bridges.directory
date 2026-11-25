@@ -985,11 +985,14 @@
     async function saveProfile() {
       var u = S.user; if (!u || S.pEdit) return;       // the prototype keeps the form open when something is invalid
       try {
-        ok(await sb.from('profiles').update({ avatar: typeof u.av === 'object' ? u.av : {}, experiences: u.kind === 'alum' ? (u.exp || []) : [], helps: u.open, fields: u.kind === 'student' ? (u.fields || []).slice(0, 3) : [] }).eq('id', u.id));
+        // .select('id') makes the server answer with the row it changed: an update the server quietly ignored (0 rows) is a failure, not a success
+        var r1 = ok(await sb.from('profiles').update({ avatar: typeof u.av === 'object' ? u.av : {}, experiences: u.kind === 'alum' ? (u.exp || []) : [], helps: u.open, fields: u.kind === 'student' ? (u.fields || []).slice(0, 3) : [] }).eq('id', u.id).select('id'));
+        if (!r1 || !r1.length) throw new Error('not_saved');
         var pp = { links: u.links || [] }; if (u.kind === 'alum') pp.email_personal = u.cemail || u.googleEmail || u.email;
-        ok(await sb.from('profile_private').update(pp).eq('id', u.id));
+        var r2 = ok(await sb.from('profile_private').update(pp).eq('id', u.id).select('id'));
+        if (!r2 || !r2.length) throw new Error('not_saved');
       } catch (e) {
-        toast('Saved here, but not on the server. ' + why(e), { t: 'Could not save', k: 'warn' });
+        toast('Your changes were not saved. ' + (e && e.message === 'not_saved' ? 'Please log out, log in again and retry. If it keeps happening, tell the Bridges team.' : why(e)), { t: 'Could not save', k: 'warn' });
         try { var s = (await sb.auth.getSession()).data.session; merge(u, buildMe(await fetchMe(s.user), s.user)); F('renderProfile'); } catch (x) {}
       }
     }
